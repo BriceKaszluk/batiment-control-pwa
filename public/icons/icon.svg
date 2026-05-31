@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Batiment Control">
+  <rect width="512" height="512" rx="96" fill="#12715d"/>
+  <path fill="#f7fafa" d="M142 420V116c0-18 14-32 32-32h164c18 0 32 14 32 32v304h-72v-74h-84v74h-72Z"/>
+  <path fill="#12715d" d="M194 150h44v44h-44v-44Zm80 0h44v44h-44v-44Zm-80 78h44v44h-44v-44Zm80 0h44v44h-44v-44Z"/>
+  <path fill="#e8b44f" d="m202 318 38 38 82-96 28 24-108 126-68-68 28-24Z"/>
+</svg>

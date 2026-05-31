@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Batiment Control">
+  <rect width="512" height="512" fill="#12715d"/>
+  <circle cx="256" cy="256" r="208" fill="#f7fafa"/>
+  <path fill="#12715d" d="M158 398V128c0-18 14-32 32-32h132c18 0 32 14 32 32v270h-64v-70h-68v70h-64Z"/>
+  <path fill="#f7fafa" d="M210 154h38v38h-38v-38Zm58 0h38v38h-38v-38Zm-58 66h38v38h-38v-38Zm58 0h38v38h-38v-38Z"/>
+  <path fill="#e8b44f" d="m184 304 38 38 88-100 28 25-114 130-68-68 28-25Z"/>
+</svg>
