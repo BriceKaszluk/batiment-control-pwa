@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { NetworkStatus } from "@/features/sync/hooks/use-network-status";
 import { createClient } from "@/lib/supabase/client";
+import { createSupabaseRemotePullAdapter } from "@/lib/sync/supabase-pull-adapter";
 import { createSupabaseRemoteSyncAdapter } from "@/lib/sync/supabase-adapter";
+import { saveRemoteSnapshot } from "@/lib/sync/remote-snapshot";
 import {
   createSyncEngine,
   type SyncEngineResult,
@@ -13,6 +15,7 @@ import {
 type UseOutboxSyncOptions = {
   enabled: boolean;
   networkStatus: NetworkStatus;
+  userId: string | null;
 };
 
 type OutboxSyncState = {
@@ -24,6 +27,7 @@ type OutboxSyncState = {
 export function useOutboxSync({
   enabled,
   networkStatus,
+  userId,
 }: UseOutboxSyncOptions) {
   const isSyncingRef = useRef(false);
   const [state, setState] = useState<OutboxSyncState>({
@@ -33,7 +37,12 @@ export function useOutboxSync({
   });
 
   const syncNow = useCallback(async () => {
-    if (!enabled || networkStatus === "offline" || isSyncingRef.current) {
+    if (
+      !enabled ||
+      !userId ||
+      networkStatus === "offline" ||
+      isSyncingRef.current
+    ) {
       return null;
     }
 
@@ -45,9 +54,15 @@ export function useOutboxSync({
     }));
 
     try {
+      const client = createClient();
+      const remoteSnapshot = await createSupabaseRemotePullAdapter(
+        client,
+      ).pullForUser(userId);
+      await saveRemoteSnapshot(remoteSnapshot);
+
       const engine = createSyncEngine({
         isOnline: () => navigator.onLine,
-        remote: createSupabaseRemoteSyncAdapter(createClient()),
+        remote: createSupabaseRemoteSyncAdapter(client),
       });
       const result = await engine.syncPending();
 
@@ -72,7 +87,7 @@ export function useOutboxSync({
     } finally {
       isSyncingRef.current = false;
     }
-  }, [enabled, networkStatus]);
+  }, [enabled, networkStatus, userId]);
 
   useEffect(() => {
     if (enabled && networkStatus === "online") {

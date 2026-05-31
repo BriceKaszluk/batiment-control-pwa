@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 type SyncStatusBarProps = {
   syncEnabled: boolean;
+  userId: string | null;
 };
 
 const syncToneClasses: Record<SyncStatusTone, string> = {
@@ -22,12 +23,16 @@ const syncToneClasses: Record<SyncStatusTone, string> = {
   synced: "border-primary/20 bg-primary/10 text-primary",
 };
 
-export function SyncStatusBar({ syncEnabled }: Readonly<SyncStatusBarProps>) {
+export function SyncStatusBar({
+  syncEnabled,
+  userId,
+}: Readonly<SyncStatusBarProps>) {
   const networkStatus = useNetworkStatus();
   const { error, isLoading, summary } = useOutboxStatusSummary();
   const outboxSync = useOutboxSync({
     enabled: syncEnabled,
     networkStatus,
+    userId,
   });
   const syncStatus = getSyncStatusIndicator(summary);
   const isOffline = networkStatus === "offline";

@@ -18,12 +18,14 @@ type MobileShellProps = {
   authConfigured: boolean;
   children: ReactNode;
   userEmail: string | null;
+  userId: string | null;
 };
 
 export function MobileShell({
   authConfigured,
   children,
   userEmail,
+  userId,
 }: Readonly<MobileShellProps>) {
   const pathname = usePathname();
   const currentItem = getCurrentNavigationItem(pathname);
@@ -58,7 +60,7 @@ export function MobileShell({
               </div>
             )}
           </div>
-          <SyncStatusBar syncEnabled={authConfigured} />
+          <SyncStatusBar syncEnabled={authConfigured} userId={userId} />
         </div>
       </header>
 

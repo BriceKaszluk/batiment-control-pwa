@@ -14,6 +14,7 @@ export default async function AppLayout({
     <MobileShell
       authConfigured={authState.isConfigured}
       userEmail={authState.userEmail}
+      userId={authState.userId}
     >
       {children}
     </MobileShell>

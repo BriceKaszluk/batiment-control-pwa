@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 export type AppAuthState = {
   isConfigured: boolean;
   userEmail: string | null;
+  userId: string | null;
 };
 
 export async function getAppAuthState(): Promise<AppAuthState> {
@@ -13,6 +14,7 @@ export async function getAppAuthState(): Promise<AppAuthState> {
     return {
       isConfigured: false,
       userEmail: null,
+      userId: null,
     };
   }
 
@@ -28,6 +30,7 @@ export async function getAppAuthState(): Promise<AppAuthState> {
   return {
     isConfigured: true,
     userEmail: user.email ?? null,
+    userId: user.id,
   };
 }
 
