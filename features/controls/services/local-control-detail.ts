@@ -3,12 +3,13 @@
 import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import { saveLocalMutation } from "@/lib/sync/local-mutation";
-import { checklistResultSchema } from "@/lib/validation/schemas";
+import { checklistResultSchema, controlSchema } from "@/lib/validation/schemas";
 import type {
   Building,
   ChecklistItem,
   ChecklistResult,
   Control,
+  CorrectiveAction,
 } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
 
@@ -21,6 +22,7 @@ export type LocalControlDetail = {
   building: Building | undefined;
   checklist: LocalChecklistEntry[];
   control: Control;
+  correctiveActions: CorrectiveAction[];
 };
 
 export type GetLocalControlDetailOptions = {
@@ -38,6 +40,16 @@ export type SaveChecklistResultOptions = {
   database?: BatimentControlDatabase;
   now?: () => string;
   status: ChecklistResult["status"];
+  userId: string | null;
+};
+
+export type SaveControlCommentOptions = {
+  clientMutationId?: string;
+  comment: string | null;
+  controlId: string;
+  createId?: () => string;
+  database?: BatimentControlDatabase;
+  now?: () => string;
   userId: string | null;
 };
 
@@ -65,7 +77,12 @@ export async function getLocalControlDetail({
     return null;
   }
 
-  const [building, checklistItems, checklistResults] = await Promise.all([
+  const [
+    building,
+    checklistItems,
+    checklistResults,
+    correctiveActions,
+  ] = await Promise.all([
     database.buildings.get(control.buildingId),
     database.checklistItems
       .where("organizationId")
@@ -73,6 +90,11 @@ export async function getLocalControlDetail({
       .filter((item) => item.deletedAt === null && item.isActive)
       .toArray(),
     database.checklistResults.where("controlId").equals(control.id).toArray(),
+    database.correctiveActions
+      .where("controlId")
+      .equals(control.id)
+      .filter((action) => action.deletedAt === null)
+      .toArray(),
   ]);
   const resultsByItemId = new Map(
     checklistResults.map((result) => [result.checklistItemId, result]),
@@ -87,7 +109,54 @@ export async function getLocalControlDetail({
         result: resultsByItemId.get(item.id),
       })),
     control,
+    correctiveActions: correctiveActions.sort(compareCorrectiveActions),
   };
+}
+
+export async function saveControlComment({
+  clientMutationId,
+  comment,
+  controlId,
+  createId = () => crypto.randomUUID(),
+  database = db,
+  now = () => new Date().toISOString(),
+  userId,
+}: SaveControlCommentOptions): Promise<LocalMutationResult<Control>> {
+  if (!userId) {
+    throw new Error("Utilisateur requis pour enregistrer le commentaire.");
+  }
+
+  const control = await database.controls.get(controlId);
+
+  if (!control || control.deletedAt !== null) {
+    throw new Error("Controle local introuvable.");
+  }
+
+  const membership = await database.organizationMembers.get([
+    control.organizationId,
+    userId,
+  ]);
+
+  if (!membership) {
+    throw new Error("Organisation locale non autorisee.");
+  }
+
+  const updatedControl: Control = {
+    ...control,
+    generalComment: normalizeComment(comment),
+    updatedAt: now(),
+  };
+
+  return saveLocalMutation({
+    clientMutationId,
+    createId,
+    database,
+    entity: "controls",
+    now,
+    record: updatedControl,
+    schema: controlSchema,
+    table: database.controls,
+  });
 }
 
 export async function saveChecklistResult({
@@ -185,6 +254,13 @@ function compareChecklistItems(
   }
 
   return firstItem.label.localeCompare(secondItem.label, "fr");
+}
+
+function compareCorrectiveActions(
+  firstAction: CorrectiveAction,
+  secondAction: CorrectiveAction,
+) {
+  return Date.parse(secondAction.createdAt) - Date.parse(firstAction.createdAt);
 }
 
 function normalizeComment(comment: string | null) {

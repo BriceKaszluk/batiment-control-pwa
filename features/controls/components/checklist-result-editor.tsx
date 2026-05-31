@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, Loader2, MinusCircle, X } from "lucide-react";
-import { useState } from "react";
+import { Check, Loader2, MinusCircle, Save, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -34,10 +34,17 @@ export function ChecklistResultEditor({
 }: Readonly<ChecklistResultEditorProps>) {
   const [comment, setComment] = useState(entry.result?.comment ?? "");
   const [error, setError] = useState<string | null>(null);
+  const [isSavingComment, setIsSavingComment] = useState(false);
   const [savingStatus, setSavingStatus] = useState<
     ChecklistResult["status"] | null
   >(null);
   const selectedStatus = entry.result?.status ?? null;
+  const savedComment = entry.result?.comment ?? "";
+  const hasCommentChanged = comment.trim() !== savedComment;
+
+  useEffect(() => {
+    setComment(entry.result?.comment ?? "");
+  }, [entry.result?.comment, entry.result?.id]);
 
   return (
     <article className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
@@ -66,7 +73,7 @@ export function ChecklistResultEditor({
           return (
             <Button
               className="h-11 px-2 text-xs"
-              disabled={!userId || savingStatus !== null}
+              disabled={!userId || savingStatus !== null || isSavingComment}
               key={option.status}
               onClick={() => {
                 setError(null);
@@ -116,6 +123,52 @@ export function ChecklistResultEditor({
           value={comment}
         />
       </label>
+
+      <Button
+        className="h-11 w-full"
+        disabled={
+          !userId ||
+          !selectedStatus ||
+          !hasCommentChanged ||
+          savingStatus !== null ||
+          isSavingComment
+        }
+        onClick={() => {
+          if (!selectedStatus) {
+            return;
+          }
+
+          setError(null);
+          setIsSavingComment(true);
+
+          void saveChecklistResult({
+            checklistItemId: entry.item.id,
+            comment,
+            controlId,
+            status: selectedStatus,
+            userId,
+          })
+            .catch((error: unknown) => {
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Commentaire non enregistre",
+              );
+            })
+            .finally(() => {
+              setIsSavingComment(false);
+            });
+        }}
+        type="button"
+        variant="outline"
+      >
+        {isSavingComment ? (
+          <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+        ) : (
+          <Save aria-hidden="true" className="size-4" />
+        )}
+        Enregistrer note
+      </Button>
 
       {selectedStatus ? (
         <p className="text-sm font-medium text-muted-foreground">

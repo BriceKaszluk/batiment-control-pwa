@@ -6,6 +6,7 @@ import { BatimentControlDatabase } from "@/lib/db/schema";
 import {
   getChecklistResultStatusLabel,
   getLocalControlDetail,
+  saveControlComment,
   saveChecklistResult,
 } from "@/features/controls/services/local-control-detail";
 import type {
@@ -144,6 +145,7 @@ describe("local control detail", () => {
         },
       ],
       control,
+      correctiveActions: [],
     });
   });
 
@@ -214,6 +216,31 @@ describe("local control detail", () => {
     ).rejects.toThrow("Organisation locale non autorisee");
     await expect(database.checklistResults.count()).resolves.toBe(0);
     await expect(database.outbox.count()).resolves.toBe(0);
+  });
+
+  it("updates the control comment locally with an outbox operation", async () => {
+    const result = await saveControlComment({
+      comment: "  Vitres a surveiller  ",
+      controlId,
+      createId: createIdFactory([mutationId, operationId]),
+      database,
+      now: () => later,
+      userId,
+    });
+
+    expect(result.record).toMatchObject({
+      createdAt: now,
+      generalComment: "Vitres a surveiller",
+      id: controlId,
+      updatedAt: later,
+    });
+    await expect(database.controls.get(controlId)).resolves.toEqual(result.record);
+    await expect(database.outbox.get(operationId)).resolves.toMatchObject({
+      aggregateId: controlId,
+      entity: "controls",
+      organizationId,
+      status: "pending",
+    });
   });
 
   it("formats checklist result labels", () => {

@@ -3,6 +3,8 @@
 import { AlertTriangle, Building2, Loader2 } from "lucide-react";
 
 import { ChecklistResultEditor } from "@/features/controls/components/checklist-result-editor";
+import { ControlCommentEditor } from "@/features/controls/components/control-comment-editor";
+import { ControlCorrectiveActionsSection } from "@/features/controls/components/control-corrective-actions-section";
 import { useLocalControlDetail } from "@/features/controls/hooks/use-local-control-detail";
 
 type ControlDetailSectionProps = {
@@ -57,6 +59,8 @@ export function ControlDetailSection({
         </p>
       </div>
 
+      <ControlCommentEditor control={detail.control} userId={userId} />
+
       {detail.checklist.length === 0 ? (
         <div className="flex min-h-28 items-center justify-center rounded-md border bg-muted px-4 text-center text-sm text-muted-foreground">
           Aucune checklist locale
@@ -73,6 +77,13 @@ export function ControlDetailSection({
           ))}
         </div>
       )}
+
+      <ControlCorrectiveActionsSection
+        actions={detail.correctiveActions}
+        buildingName={detail.building?.name}
+        controlId={detail.control.id}
+        userId={userId}
+      />
     </section>
   );
 }
