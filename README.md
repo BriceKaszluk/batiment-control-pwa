@@ -12,6 +12,7 @@ PWA mobile-first de controle qualite de batiments pour un chef d'equipe proprete
 - Supabase PostgreSQL et Storage
 - Dexie.js pour IndexedDB
 - Zod
+- TanStack Query
 - Vitest
 
 ## Etat du MVP
