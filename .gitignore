@@ -44,6 +44,7 @@ pnpm-debug.log*
 # Cache
 .cache/
 *.cache
+*.tsbuildinfo
 
 # Misc
 .eslintcache

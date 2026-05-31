@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 180 20% 98%;
+    --foreground: 210 17% 14%;
+    --muted: 160 10% 92%;
+    --muted-foreground: 210 10% 38%;
+    --primary: 166 76% 28%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 36 66% 92%;
+    --secondary-foreground: 28 36% 20%;
+    --border: 205 18% 86%;
+    --input: 205 18% 86%;
+    --ring: 166 76% 28%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
