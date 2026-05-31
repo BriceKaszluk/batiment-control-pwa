@@ -1,5 +1,7 @@
 import { Building2, ClipboardCheck, Clock3 } from "lucide-react";
+import Link from "next/link";
 
+import { Button } from "@/components/ui/button";
 import {
   getControlStatusLabel,
   type LocalControlSummary,
@@ -38,6 +40,12 @@ export function ControlListItem({ summary }: Readonly<ControlListItemProps>) {
         <Clock3 aria-hidden="true" className="size-3.5" />
         Demarre localement
       </p>
+      <Button asChild className="mt-4 h-11 w-full">
+        <Link href={`/controles/${control.id}`}>
+          <ClipboardCheck aria-hidden="true" className="size-4" />
+          Ouvrir
+        </Link>
+      </Button>
     </article>
   );
 }
