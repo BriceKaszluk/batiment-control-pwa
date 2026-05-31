@@ -5,6 +5,7 @@ import {
   getBuildingPriorityTone,
   type BuildingPriorityTone,
 } from "@/features/buildings/services/local-buildings";
+import { StartControlButton } from "@/features/controls/components/start-control-button";
 import { cn } from "@/lib/utils";
 import type { Building } from "@/types/domain";
 
@@ -16,10 +17,12 @@ const priorityToneClasses: Record<BuildingPriorityTone, string> = {
 
 type BuildingListItemProps = {
   building: Building;
+  userId: string | null;
 };
 
 export function BuildingListItem({
   building,
+  userId,
 }: Readonly<BuildingListItemProps>) {
   const priorityTone = getBuildingPriorityTone(building.priorityScore);
 
@@ -60,6 +63,9 @@ export function BuildingListItem({
           <Clock3 aria-hidden="true" className="size-3.5" />
           {building.lastControlAt ? "Controle deja realise" : "Jamais controle"}
         </span>
+      </div>
+      <div className="mt-4">
+        <StartControlButton building={building} userId={userId} />
       </div>
     </article>
   );
