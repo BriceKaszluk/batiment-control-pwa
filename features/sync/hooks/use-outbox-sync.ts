@@ -4,8 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { NetworkStatus } from "@/features/sync/hooks/use-network-status";
 import { createClient } from "@/lib/supabase/client";
+import {
+  createPhotoUploadSyncEngine,
+  mergeSyncResults,
+} from "@/lib/sync/photo-upload-engine";
 import { createSupabaseRemotePullAdapter } from "@/lib/sync/supabase-pull-adapter";
 import { createSupabaseRemoteSyncAdapter } from "@/lib/sync/supabase-adapter";
+import { createSupabasePhotoUploadAdapter } from "@/lib/sync/supabase-photo-upload-adapter";
 import { saveRemoteSnapshot } from "@/lib/sync/remote-snapshot";
 import {
   createSyncEngine,
@@ -65,14 +70,19 @@ export function useOutboxSync({
         remote: createSupabaseRemoteSyncAdapter(client),
       });
       const result = await engine.syncPending();
+      const photoResult = await createPhotoUploadSyncEngine({
+        isOnline: () => navigator.onLine,
+        remote: createSupabasePhotoUploadAdapter({ client }),
+      }).syncPending();
+      const combinedResult = mergeSyncResults(result, photoResult);
 
       setState({
         error: null,
         isSyncing: false,
-        lastResult: result,
+        lastResult: combinedResult,
       });
 
-      return result;
+      return combinedResult;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Synchronisation indisponible";

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { toSupabaseMutation } from "@/lib/sync/supabase-adapter";
-import type { Building, ChecklistResult } from "@/types/domain";
+import {
+  buildControlPhotoStoragePath,
+  controlPhotoStorageBucket,
+  toControlPhotoInsert,
+} from "@/lib/sync/supabase-photo-upload-adapter";
+import type { Building, ChecklistResult, ControlPhoto } from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
 
 const now = "2026-05-31T00:00:00.000Z";
@@ -102,6 +107,49 @@ describe("Supabase sync adapter", () => {
         status: "compliant",
       },
       table: "control_checklist_results",
+    });
+  });
+
+  it("maps local photo metadata to the remote control photos table", () => {
+    const photo: ControlPhoto = {
+      blob: new Blob(["photo"], { type: "image/jpeg" }),
+      buildingId,
+      caption: "Hall entree",
+      controlId: "77777777-7777-4777-8777-777777777777",
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      fileName: "Hall entree.jpg",
+      id: "88888888-8888-4888-8888-888888888888",
+      mimeType: "image/jpeg",
+      organizationId,
+      remotePath: null,
+      sizeBytes: 5,
+      updatedAt: now,
+      uploadedAt: null,
+      uploadStatus: "pending",
+    };
+    const storagePath = buildControlPhotoStoragePath(photo);
+
+    expect(storagePath).toBe(
+      `${organizationId}/${photo.controlId}/${photo.id}-Hall-entree.jpg`,
+    );
+    expect(toControlPhotoInsert(photo, storagePath, now)).toEqual({
+      building_id: buildingId,
+      caption: "Hall entree",
+      control_id: photo.controlId,
+      created_at: now,
+      created_by: userId,
+      deleted_at: null,
+      file_name: "Hall entree.jpg",
+      id: photo.id,
+      mime_type: "image/jpeg",
+      organization_id: organizationId,
+      size_bytes: 5,
+      storage_bucket: controlPhotoStorageBucket,
+      storage_path: storagePath,
+      updated_at: now,
+      uploaded_at: now,
     });
   });
 });

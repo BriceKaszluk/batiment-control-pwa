@@ -148,6 +148,60 @@ export type Database = {
           updated_at?: string;
         };
       };
+      control_photos: {
+        Insert: {
+          building_id: string;
+          caption?: string | null;
+          control_id: string;
+          created_at?: string;
+          created_by: string;
+          deleted_at?: string | null;
+          file_name: string;
+          id: string;
+          mime_type: "image/jpeg" | "image/png" | "image/webp";
+          organization_id: string;
+          size_bytes: number;
+          storage_bucket?: "control-photos";
+          storage_path: string;
+          updated_at?: string;
+          uploaded_at: string;
+        };
+        Relationships: [];
+        Row: {
+          building_id: string;
+          caption: string | null;
+          control_id: string;
+          created_at: string;
+          created_by: string;
+          deleted_at: string | null;
+          file_name: string;
+          id: string;
+          mime_type: "image/jpeg" | "image/png" | "image/webp";
+          organization_id: string;
+          size_bytes: number;
+          storage_bucket: "control-photos";
+          storage_path: string;
+          updated_at: string;
+          uploaded_at: string;
+        };
+        Update: {
+          building_id?: string;
+          caption?: string | null;
+          control_id?: string;
+          created_at?: string;
+          created_by?: string;
+          deleted_at?: string | null;
+          file_name?: string;
+          id?: string;
+          mime_type?: "image/jpeg" | "image/png" | "image/webp";
+          organization_id?: string;
+          size_bytes?: number;
+          storage_bucket?: "control-photos";
+          storage_path?: string;
+          updated_at?: string;
+          uploaded_at?: string;
+        };
+      };
       controls: {
         Insert: {
           building_id: string;

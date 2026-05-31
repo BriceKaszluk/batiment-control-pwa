@@ -130,7 +130,7 @@ export function getPhotoUploadStatusLabel(status: PhotoUpload["status"]) {
     return "Upload en cours";
   }
 
-  if (status === "uploaded") {
+  if (status === "synced") {
     return "Upload termine";
   }
 

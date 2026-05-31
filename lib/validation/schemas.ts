@@ -16,7 +16,7 @@ export const correctiveActionStatuses = [
 export const photoUploadStatuses = [
   "pending",
   "processing",
-  "uploaded",
+  "synced",
   "error",
 ] as const;
 export const priorityLevels = ["low", "normal", "high"] as const;

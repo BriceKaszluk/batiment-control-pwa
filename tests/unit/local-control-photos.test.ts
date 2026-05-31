@@ -182,7 +182,7 @@ describe("local control photos", () => {
   it("formats upload status labels", () => {
     expect(getPhotoUploadStatusLabel("pending")).toBe("Upload en attente");
     expect(getPhotoUploadStatusLabel("processing")).toBe("Upload en cours");
-    expect(getPhotoUploadStatusLabel("uploaded")).toBe("Upload termine");
+    expect(getPhotoUploadStatusLabel("synced")).toBe("Upload termine");
     expect(getPhotoUploadStatusLabel("error")).toBe("Erreur upload");
   });
 });

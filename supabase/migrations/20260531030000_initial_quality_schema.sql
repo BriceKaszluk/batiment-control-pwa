@@ -146,6 +146,34 @@ create table public.corrective_actions (
     check (status <> 'done' or resolved_at is not null)
 );
 
+create table public.control_photos (
+  id uuid primary key,
+  organization_id uuid not null references public.organizations(id) on delete restrict,
+  building_id uuid not null,
+  control_id uuid not null,
+  storage_bucket text not null default 'control-photos' check (storage_bucket = 'control-photos'),
+  storage_path text not null check (char_length(storage_path) between 1 and 500),
+  file_name text not null check (char_length(file_name) between 1 and 180),
+  mime_type text not null check (mime_type in ('image/jpeg', 'image/png', 'image/webp')),
+  size_bytes integer not null check (size_bytes between 1 and 8388608),
+  caption text check (caption is null or char_length(caption) <= 500),
+  created_by uuid not null references auth.users(id) on delete restrict,
+  uploaded_at timestamptz not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  unique (id, organization_id),
+  unique (storage_bucket, storage_path),
+  constraint control_photos_building_same_org
+    foreign key (building_id, organization_id)
+    references public.buildings(id, organization_id)
+    on delete restrict,
+  constraint control_photos_control_same_org
+    foreign key (control_id, organization_id)
+    references public.controls(id, organization_id)
+    on delete cascade
+);
+
 create index organizations_name_idx on public.organizations (name);
 create index organization_members_user_idx on public.organization_members (user_id);
 create index buildings_priority_idx on public.buildings (organization_id, deleted_at, priority_score desc, name);
@@ -155,6 +183,8 @@ create index controls_status_idx on public.controls (organization_id, deleted_at
 create index checklist_results_control_idx on public.control_checklist_results (organization_id, control_id);
 create index corrective_actions_status_idx on public.corrective_actions (organization_id, deleted_at, status, priority, due_date);
 create index corrective_actions_assignee_idx on public.corrective_actions (organization_id, assigned_to, status);
+create index control_photos_control_idx on public.control_photos (organization_id, control_id, created_at desc);
+create index control_photos_upload_idx on public.control_photos (organization_id, deleted_at, uploaded_at desc);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -189,6 +219,24 @@ for each row execute function public.set_updated_at();
 create trigger corrective_actions_set_updated_at
 before update on public.corrective_actions
 for each row execute function public.set_updated_at();
+
+create trigger control_photos_set_updated_at
+before update on public.control_photos
+for each row execute function public.set_updated_at();
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'control-photos',
+  'control-photos',
+  false,
+  8388608,
+  array['image/jpeg', 'image/png', 'image/webp']
+)
+on conflict (id) do update
+set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
 
 create or replace function public.is_org_member(target_organization_id uuid)
 returns boolean
@@ -233,6 +281,7 @@ alter table public.checklist_items enable row level security;
 alter table public.controls enable row level security;
 alter table public.control_checklist_results enable row level security;
 alter table public.corrective_actions enable row level security;
+alter table public.control_photos enable row level security;
 
 alter table public.organizations force row level security;
 alter table public.organization_members force row level security;
@@ -241,6 +290,7 @@ alter table public.checklist_items force row level security;
 alter table public.controls force row level security;
 alter table public.control_checklist_results force row level security;
 alter table public.corrective_actions force row level security;
+alter table public.control_photos force row level security;
 
 grant usage on schema public to authenticated;
 grant select, update on public.organizations to authenticated;
@@ -250,6 +300,7 @@ grant select, insert, update on public.checklist_items to authenticated;
 grant select, insert, update on public.controls to authenticated;
 grant select, insert, update on public.control_checklist_results to authenticated;
 grant select, insert, update on public.corrective_actions to authenticated;
+grant select, insert, update on public.control_photos to authenticated;
 
 create policy "Organizations are visible to members"
 on public.organizations
@@ -399,3 +450,60 @@ for update
 to authenticated
 using ((select auth.uid()) is not null and public.is_org_member(organization_id))
 with check ((select auth.uid()) is not null and public.is_org_member(organization_id));
+
+create policy "Control photos are visible to organization members"
+on public.control_photos
+for select
+to authenticated
+using ((select auth.uid()) is not null and public.is_org_member(organization_id));
+
+create policy "Organization members can create control photos"
+on public.control_photos
+for insert
+to authenticated
+with check (
+  (select auth.uid()) is not null
+  and public.is_org_member(organization_id)
+  and created_by = (select auth.uid())
+);
+
+create policy "Organization members can update control photos"
+on public.control_photos
+for update
+to authenticated
+using ((select auth.uid()) is not null and public.is_org_member(organization_id))
+with check ((select auth.uid()) is not null and public.is_org_member(organization_id));
+
+create policy "Organization members can read control photo objects"
+on storage.objects
+for select
+to authenticated
+using (
+  bucket_id = 'control-photos'
+  and (select auth.uid()) is not null
+  and public.is_org_member(((storage.foldername(name))[1])::uuid)
+);
+
+create policy "Organization members can upload control photo objects"
+on storage.objects
+for insert
+to authenticated
+with check (
+  bucket_id = 'control-photos'
+  and owner = (select auth.uid())
+  and public.is_org_member(((storage.foldername(name))[1])::uuid)
+);
+
+create policy "Organization members can update control photo objects"
+on storage.objects
+for update
+to authenticated
+using (
+  bucket_id = 'control-photos'
+  and (select auth.uid()) is not null
+  and public.is_org_member(((storage.foldername(name))[1])::uuid)
+)
+with check (
+  bucket_id = 'control-photos'
+  and public.is_org_member(((storage.foldername(name))[1])::uuid)
+);

@@ -15,6 +15,7 @@ const publicTables = [
   "controls",
   "control_checklist_results",
   "corrective_actions",
+  "control_photos",
 ] as const;
 
 describe("initial Supabase migration", () => {
@@ -48,5 +49,14 @@ describe("initial Supabase migration", () => {
     expect(migration).toContain("(select auth.uid()) is not null");
     expect(migration).toContain("created_by = (select auth.uid())");
     expect(migration).toContain("controlled_by = (select auth.uid())");
+  });
+
+  it("defines a private storage bucket and policies for control photos", () => {
+    expect(migration).toContain("insert into storage.buckets");
+    expect(migration).toContain("'control-photos'");
+    expect(migration).toContain("on storage.objects");
+    expect(migration).toContain("bucket_id = 'control-photos'");
+    expect(migration).toContain("file_size_limit");
+    expect(migration).toContain("allowed_mime_types");
   });
 });
