@@ -3,10 +3,12 @@
 import { AlertTriangle, Building2, Loader2 } from "lucide-react";
 
 import { ChecklistResultEditor } from "@/features/controls/components/checklist-result-editor";
+import { CompleteControlButton } from "@/features/controls/components/complete-control-button";
 import { ControlCommentEditor } from "@/features/controls/components/control-comment-editor";
 import { ControlCorrectiveActionsSection } from "@/features/controls/components/control-corrective-actions-section";
 import { ControlPhotosSection } from "@/features/controls/components/control-photos-section";
 import { useLocalControlDetail } from "@/features/controls/hooks/use-local-control-detail";
+import { getControlStatusLabel } from "@/features/controls/services/local-controls";
 
 type ControlDetailSectionProps = {
   controlId: string;
@@ -51,14 +53,23 @@ export function ControlDetailSection({
   return (
     <section className="space-y-4">
       <div className="rounded-md border bg-muted p-4">
-        <p className="flex items-center gap-2 text-base font-semibold">
-          <Building2 aria-hidden="true" className="size-5 text-primary" />
-          {detail.building?.name ?? "Batiment non disponible"}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="flex min-w-0 items-center gap-2 text-base font-semibold">
+            <Building2 aria-hidden="true" className="size-5 shrink-0 text-primary" />
+            <span className="truncate">
+              {detail.building?.name ?? "Batiment non disponible"}
+            </span>
+          </p>
+          <span className="shrink-0 rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+            {getControlStatusLabel(detail.control.status)}
+          </span>
+        </div>
         <p className="mt-1 text-sm text-muted-foreground">
           {detail.building?.address ?? "Adresse non renseignee"}
         </p>
       </div>
+
+      <CompleteControlButton control={detail.control} userId={userId} />
 
       <ControlCommentEditor control={detail.control} userId={userId} />
 
