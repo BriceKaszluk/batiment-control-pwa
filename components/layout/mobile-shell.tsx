@@ -58,7 +58,7 @@ export function MobileShell({
               </div>
             )}
           </div>
-          <SyncStatusBar />
+          <SyncStatusBar syncEnabled={authConfigured} />
         </div>
       </header>
 

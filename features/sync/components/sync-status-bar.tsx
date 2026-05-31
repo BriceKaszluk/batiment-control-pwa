@@ -3,12 +3,17 @@
 import { RefreshCw, Wifi, WifiOff } from "lucide-react";
 
 import { useNetworkStatus } from "@/features/sync/hooks/use-network-status";
+import { useOutboxSync } from "@/features/sync/hooks/use-outbox-sync";
 import { useOutboxStatusSummary } from "@/features/sync/hooks/use-outbox-status-summary";
 import {
   getSyncStatusIndicator,
   type SyncStatusTone,
 } from "@/features/sync/services/sync-status-format";
 import { cn } from "@/lib/utils";
+
+type SyncStatusBarProps = {
+  syncEnabled: boolean;
+};
 
 const syncToneClasses: Record<SyncStatusTone, string> = {
   error: "border-red-200 bg-red-50 text-red-700",
@@ -17,12 +22,18 @@ const syncToneClasses: Record<SyncStatusTone, string> = {
   synced: "border-primary/20 bg-primary/10 text-primary",
 };
 
-export function SyncStatusBar() {
+export function SyncStatusBar({ syncEnabled }: Readonly<SyncStatusBarProps>) {
   const networkStatus = useNetworkStatus();
   const { error, isLoading, summary } = useOutboxStatusSummary();
+  const outboxSync = useOutboxSync({
+    enabled: syncEnabled,
+    networkStatus,
+  });
   const syncStatus = getSyncStatusIndicator(summary);
   const isOffline = networkStatus === "offline";
+  const canSync = syncEnabled && !isOffline && !outboxSync.isSyncing;
   const NetworkIcon = isOffline ? WifiOff : Wifi;
+  const syncError = error ?? outboxSync.error;
 
   return (
     <div
@@ -43,7 +54,7 @@ export function SyncStatusBar() {
       <span
         className={cn(
           "inline-flex h-8 items-center gap-1 rounded-md border px-2",
-          error
+          syncError
             ? syncToneClasses.error
             : syncToneClasses[syncStatus.tone],
         )}
@@ -52,11 +63,35 @@ export function SyncStatusBar() {
           aria-hidden="true"
           className={cn(
             "size-4",
-            (isLoading || syncStatus.tone === "processing") && "animate-spin",
+            (isLoading ||
+              outboxSync.isSyncing ||
+              syncStatus.tone === "processing") &&
+              "animate-spin",
           )}
         />
-        {error ? "Sync indisponible" : syncStatus.label}
+        {syncError ? "Sync indisponible" : syncStatus.label}
       </span>
+      <button
+        className={cn(
+          "inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2 text-foreground transition-colors",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          canSync
+            ? "hover:bg-secondary"
+            : "cursor-not-allowed opacity-50",
+        )}
+        disabled={!canSync}
+        onClick={() => {
+          void outboxSync.syncNow();
+        }}
+        title="Synchroniser maintenant"
+        type="button"
+      >
+        <RefreshCw
+          aria-hidden="true"
+          className={cn("size-4", outboxSync.isSyncing && "animate-spin")}
+        />
+        Synchroniser
+      </button>
     </div>
   );
 }
