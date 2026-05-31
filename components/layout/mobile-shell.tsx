@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   History,
   Home,
+  LogOut,
   RotateCcw,
   Settings,
 } from "lucide-react";
@@ -12,6 +13,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 
+import { signOut } from "@/features/auth/actions";
 import { cn } from "@/lib/utils";
 
 type NavigationItem = {
@@ -29,7 +31,17 @@ const navigationItems: NavigationItem[] = [
   { href: "/parametres", label: "Reglages", icon: Settings },
 ];
 
-export function MobileShell({ children }: Readonly<{ children: ReactNode }>) {
+type MobileShellProps = {
+  authConfigured: boolean;
+  children: ReactNode;
+  userEmail: string | null;
+};
+
+export function MobileShell({
+  authConfigured,
+  children,
+  userEmail,
+}: Readonly<MobileShellProps>) {
   const pathname = usePathname();
   const currentItem =
     navigationItems.find((item) => pathname.startsWith(item.href)) ??
@@ -45,9 +57,22 @@ export function MobileShell({ children }: Readonly<{ children: ReactNode }>) {
             </p>
             <p className="text-lg font-semibold">{currentItem.label}</p>
           </div>
-          <div className="rounded-md bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-            Terrain
-          </div>
+          {authConfigured ? (
+            <form action={signOut}>
+              <button
+                aria-label="Deconnexion"
+                className="flex size-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                title={userEmail ?? "Deconnexion"}
+                type="submit"
+              >
+                <LogOut aria-hidden="true" className="size-5" />
+              </button>
+            </form>
+          ) : (
+            <div className="rounded-md bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+              Config
+            </div>
+          )}
         </div>
       </header>
 

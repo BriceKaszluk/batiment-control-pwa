@@ -1,6 +1,9 @@
-import { Button } from "@/components/ui/button";
+import { LoginForm } from "@/app/(auth)/login/login-form";
+import { redirectAuthenticatedUser } from "@/features/auth/session";
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  await redirectAuthenticatedUser();
+
   return (
     <main className="flex min-h-svh items-center justify-center px-4 py-8">
       <section className="w-full max-w-sm space-y-6">
@@ -12,9 +15,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <Button className="h-12 w-full" disabled>
-          Connexion a configurer
-        </Button>
+        <LoginForm />
       </section>
     </main>
   );

@@ -1,7 +1,21 @@
 import type { ReactNode } from "react";
 
 import { MobileShell } from "@/components/layout/mobile-shell";
+import { getAppAuthState } from "@/features/auth/session";
 
-export default function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
-  return <MobileShell>{children}</MobileShell>;
+export const dynamic = "force-dynamic";
+
+export default async function AppLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
+  const authState = await getAppAuthState();
+
+  return (
+    <MobileShell
+      authConfigured={authState.isConfigured}
+      userEmail={authState.userEmail}
+    >
+      {children}
+    </MobileShell>
+  );
 }
