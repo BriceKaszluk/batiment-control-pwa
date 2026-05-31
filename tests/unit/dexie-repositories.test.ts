@@ -64,11 +64,13 @@ describe("Dexie repositories", () => {
       "buildings",
       "checklistItems",
       "checklistResults",
+      "controlPhotos",
       "controls",
       "correctiveActions",
       "organizationMembers",
       "organizations",
       "outbox",
+      "photoUploads",
     ]);
   });
 

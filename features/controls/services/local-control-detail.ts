@@ -9,6 +9,7 @@ import type {
   ChecklistItem,
   ChecklistResult,
   Control,
+  ControlPhoto,
   CorrectiveAction,
 } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
@@ -23,6 +24,7 @@ export type LocalControlDetail = {
   checklist: LocalChecklistEntry[];
   control: Control;
   correctiveActions: CorrectiveAction[];
+  photos: ControlPhoto[];
 };
 
 export type GetLocalControlDetailOptions = {
@@ -82,6 +84,7 @@ export async function getLocalControlDetail({
     checklistItems,
     checklistResults,
     correctiveActions,
+    photos,
   ] = await Promise.all([
     database.buildings.get(control.buildingId),
     database.checklistItems
@@ -94,6 +97,11 @@ export async function getLocalControlDetail({
       .where("controlId")
       .equals(control.id)
       .filter((action) => action.deletedAt === null)
+      .toArray(),
+    database.controlPhotos
+      .where("controlId")
+      .equals(control.id)
+      .filter((photo) => photo.deletedAt === null)
       .toArray(),
   ]);
   const resultsByItemId = new Map(
@@ -110,6 +118,7 @@ export async function getLocalControlDetail({
       })),
     control,
     correctiveActions: correctiveActions.sort(compareCorrectiveActions),
+    photos: photos.sort(comparePhotos),
   };
 }
 
@@ -261,6 +270,10 @@ function compareCorrectiveActions(
   secondAction: CorrectiveAction,
 ) {
   return Date.parse(secondAction.createdAt) - Date.parse(firstAction.createdAt);
+}
+
+function comparePhotos(firstPhoto: ControlPhoto, secondPhoto: ControlPhoto) {
+  return Date.parse(secondPhoto.createdAt) - Date.parse(firstPhoto.createdAt);
 }
 
 function normalizeComment(comment: string | null) {

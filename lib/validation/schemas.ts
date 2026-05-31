@@ -13,17 +13,30 @@ export const correctiveActionStatuses = [
   "done",
   "canceled",
 ] as const;
+export const photoUploadStatuses = [
+  "pending",
+  "processing",
+  "uploaded",
+  "error",
+] as const;
 export const priorityLevels = ["low", "normal", "high"] as const;
+export const photoMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export const memberRoleSchema = z.enum(memberRoles);
 export const controlStatusSchema = z.enum(controlStatuses);
 export const checklistResultStatusSchema = z.enum(checklistResultStatuses);
 export const correctiveActionStatusSchema = z.enum(correctiveActionStatuses);
+export const photoUploadStatusSchema = z.enum(photoUploadStatuses);
 export const priorityLevelSchema = z.enum(priorityLevels);
+export const photoMimeTypeSchema = z.enum(photoMimeTypes);
 
 const uuidSchema = z.string().uuid();
 const isoDateTimeSchema = z.string().datetime({ offset: true });
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const blobSchema = z.custom<Blob>(
+  (value) => typeof Blob !== "undefined" && value instanceof Blob,
+  "A local photo blob is required",
+);
 
 function nullableText(maxLength: number) {
   return z.string().trim().max(maxLength).nullable();
@@ -143,6 +156,43 @@ export const correctiveActionSchema = correctiveActionObjectSchema.refine(
     path: ["resolvedAt"],
   },
 );
+
+export const controlPhotoSchema = z
+  .object({
+    blob: blobSchema,
+    buildingId: uuidSchema,
+    caption: nullableText(500),
+    controlId: uuidSchema,
+    createdAt: isoDateTimeSchema,
+    createdBy: uuidSchema,
+    deletedAt: isoDateTimeSchema.nullable(),
+    fileName: z.string().trim().min(1).max(180),
+    id: uuidSchema,
+    mimeType: photoMimeTypeSchema,
+    organizationId: uuidSchema,
+    remotePath: z.string().trim().min(1).max(500).nullable(),
+    sizeBytes: z.number().int().min(1),
+    updatedAt: isoDateTimeSchema,
+    uploadedAt: isoDateTimeSchema.nullable(),
+    uploadStatus: photoUploadStatusSchema,
+  })
+  .strict();
+
+export const photoUploadSchema = z
+  .object({
+    attemptCount: z.number().int().min(0),
+    controlId: uuidSchema,
+    createdAt: isoDateTimeSchema,
+    id: uuidSchema,
+    idempotencyKey: z.string().min(1).max(360),
+    lastError: z.string().max(2000).nullable(),
+    nextAttemptAt: isoDateTimeSchema.nullable(),
+    organizationId: uuidSchema,
+    photoId: uuidSchema,
+    status: photoUploadStatusSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
 
 export const buildingCreateSchema = buildingSchema.pick({
   accessNotes: true,

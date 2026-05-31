@@ -7,9 +7,11 @@ import type {
   ChecklistItem,
   ChecklistResult,
   Control,
+  ControlPhoto,
   CorrectiveAction,
   Organization,
   OrganizationMember,
+  PhotoUpload,
 } from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
 
@@ -36,20 +38,31 @@ const versionTwoStores = {
     "&id, &idempotencyKey, organizationId, entity, aggregateId, operationType, status, createdAt, updatedAt, nextAttemptAt, [status+createdAt], [organizationId+status], [entity+aggregateId]",
 };
 
+const versionThreeStores = {
+  ...versionTwoStores,
+  controlPhotos:
+    "&id, organizationId, controlId, buildingId, createdBy, uploadStatus, deletedAt, updatedAt, [organizationId+controlId], [organizationId+uploadStatus], [organizationId+deletedAt]",
+  photoUploads:
+    "&id, &idempotencyKey, organizationId, photoId, controlId, status, createdAt, updatedAt, nextAttemptAt, [status+createdAt], [organizationId+status], [photoId+status]",
+};
+
 export class BatimentControlDatabase extends Dexie {
   buildings!: Table<Building, string>;
   checklistItems!: Table<ChecklistItem, string>;
   checklistResults!: Table<ChecklistResult, string>;
   controls!: Table<Control, string>;
+  controlPhotos!: Table<ControlPhoto, string>;
   correctiveActions!: Table<CorrectiveAction, string>;
   organizationMembers!: Table<OrganizationMember, [string, string]>;
   organizations!: Table<Organization, string>;
   outbox!: Table<OutboxOperation, string>;
+  photoUploads!: Table<PhotoUpload, string>;
 
   constructor(databaseName = localDatabaseName) {
     super(databaseName);
 
     this.version(1).stores(versionOneStores);
     this.version(2).stores(versionTwoStores);
+    this.version(3).stores(versionThreeStores);
   }
 }

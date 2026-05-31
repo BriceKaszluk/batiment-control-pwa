@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildingSchema,
+  controlPhotoSchema,
   controlSchema,
   correctiveActionSchema,
 } from "@/lib/validation/schemas";
@@ -87,5 +88,28 @@ describe("domain schemas", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("accepts a valid local control photo", () => {
+    const result = controlPhotoSchema.safeParse({
+      blob: new Blob(["photo"], { type: "image/jpeg" }),
+      buildingId,
+      caption: null,
+      controlId,
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      fileName: "hall.jpg",
+      id: "66666666-6666-4666-8666-666666666666",
+      mimeType: "image/jpeg",
+      organizationId,
+      remotePath: null,
+      sizeBytes: 5,
+      updatedAt: now,
+      uploadedAt: null,
+      uploadStatus: "pending",
+    });
+
+    expect(result.success).toBe(true);
   });
 });
