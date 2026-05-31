@@ -68,6 +68,7 @@ describe("Dexie repositories", () => {
       "correctiveActions",
       "organizationMembers",
       "organizations",
+      "outbox",
     ]);
   });
 
