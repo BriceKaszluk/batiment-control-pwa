@@ -32,16 +32,21 @@ const organizationMember: OrganizationMember = {
 };
 
 const building: Building = {
-  accessNotes: null,
   address: "12 rue du Controle",
+  agentStatus: "unknown",
+  areasToCheck: [],
+  assignedAgentName: null,
   createdAt: now,
   createdBy: userId,
   deletedAt: null,
   id: buildingId,
+  internalNotes: null,
   lastControlAt: null,
   name: "Batiment A",
   organizationId,
-  priorityScore: 75,
+  priorityLevel: "high",
+  sector: "Secteur Nord",
+  serviceDays: [],
   updatedAt: now,
 };
 
@@ -89,7 +94,7 @@ describe("Dexie repositories", () => {
   it("rejects invalid records before writing to IndexedDB", async () => {
     const invalidBuilding: Building = {
       ...building,
-      priorityScore: 120,
+      sector: " ",
     };
 
     await expect(

@@ -123,18 +123,40 @@ async function pushOutboxOperation(
 
 function toBuildingInsert(building: Building): PublicTables["buildings"]["Insert"] {
   return {
-    access_notes: building.accessNotes,
+    agent_status: building.agentStatus,
+    areas_to_check: building.areasToCheck,
+    assigned_agent_name: building.assignedAgentName,
     address: building.address,
     created_at: building.createdAt,
     created_by: building.createdBy,
     deleted_at: building.deletedAt,
     id: building.id,
+    internal_notes: building.internalNotes,
     last_control_at: building.lastControlAt,
     name: building.name,
     organization_id: building.organizationId,
-    priority_score: building.priorityScore,
+    priority_level: building.priorityLevel,
+    priority_score: toLegacyPriorityScore(building.priorityLevel),
+    sector: building.sector,
+    service_days: building.serviceDays,
     updated_at: building.updatedAt,
   };
+}
+
+function toLegacyPriorityScore(priorityLevel: Building["priorityLevel"]): number {
+  if (priorityLevel === "critical") {
+    return 90;
+  }
+
+  if (priorityLevel === "high") {
+    return 75;
+  }
+
+  if (priorityLevel === "low") {
+    return 25;
+  }
+
+  return 50;
 }
 
 function toChecklistItemInsert(

@@ -22,21 +22,26 @@ function createTestDatabase() {
 }
 
 function createBuilding(
-  overrides: Partial<Building> & Pick<Building, "id" | "name" | "priorityScore">,
+  overrides: Partial<Building> & Pick<Building, "id" | "name" | "priorityLevel">,
 ): Building {
-  const { id, name, priorityScore, ...optionalOverrides } = overrides;
+  const { id, name, priorityLevel, ...optionalOverrides } = overrides;
 
   return {
-    accessNotes: null,
-    address: null,
+    address: "12 rue du Controle",
+    agentStatus: "unknown",
+    areasToCheck: [],
+    assignedAgentName: null,
     createdAt: now,
     createdBy: userId,
     deletedAt: null,
     id,
+    internalNotes: null,
     lastControlAt: null,
     name,
     organizationId,
-    priorityScore,
+    priorityLevel,
+    sector: "Secteur Nord",
+    serviceDays: [],
     updatedAt: now,
     ...optionalOverrides,
   };
@@ -65,13 +70,13 @@ describe("local buildings", () => {
     const visibleBuilding = createBuilding({
       id: "33333333-3333-4333-8333-333333333333",
       name: "Batiment visible",
-      priorityScore: 60,
+      priorityLevel: "normal",
     });
     const otherOrganizationBuilding = createBuilding({
       id: "44444444-4444-4444-8444-444444444444",
       name: "Autre organisation",
       organizationId: otherOrganizationId,
-      priorityScore: 90,
+      priorityLevel: "high",
     });
 
     await database.organizationMembers.put(organizationMember);
@@ -89,18 +94,18 @@ describe("local buildings", () => {
     const neverControlled = createBuilding({
       id: "33333333-3333-4333-8333-333333333333",
       name: "Jamais controle",
-      priorityScore: 80,
+      priorityLevel: "high",
     });
     const oldControl = createBuilding({
       id: "44444444-4444-4444-8444-444444444444",
       lastControlAt: older,
       name: "Ancien controle",
-      priorityScore: 80,
+      priorityLevel: "high",
     });
     const lowerPriority = createBuilding({
       id: "55555555-5555-4555-8555-555555555555",
       name: "Priorite plus basse",
-      priorityScore: 50,
+      priorityLevel: "normal",
     });
 
     await database.organizationMembers.put(organizationMember);
@@ -117,18 +122,18 @@ describe("local buildings", () => {
       createBuilding({
         id: "33333333-3333-4333-8333-333333333333",
         name: "Premier",
-        priorityScore: 90,
+        priorityLevel: "critical",
       }),
       createBuilding({
         deletedAt: now,
         id: "44444444-4444-4444-8444-444444444444",
         name: "Supprime",
-        priorityScore: 100,
+        priorityLevel: "high",
       }),
       createBuilding({
         id: "55555555-5555-4555-8555-555555555555",
         name: "Deuxieme",
-        priorityScore: 80,
+        priorityLevel: "normal",
       }),
     ]);
 
@@ -144,8 +149,9 @@ describe("local buildings", () => {
   });
 
   it("formats priority labels", () => {
-    expect(getBuildingPriorityLabel(80)).toBe("Priorite haute");
-    expect(getBuildingPriorityLabel(50)).toBe("Priorite normale");
-    expect(getBuildingPriorityLabel(20)).toBe("Priorite basse");
+    expect(getBuildingPriorityLabel("critical")).toBe("Priorite critique");
+    expect(getBuildingPriorityLabel("high")).toBe("Priorite haute");
+    expect(getBuildingPriorityLabel("normal")).toBe("Priorite normale");
+    expect(getBuildingPriorityLabel("low")).toBe("Priorite basse");
   });
 });

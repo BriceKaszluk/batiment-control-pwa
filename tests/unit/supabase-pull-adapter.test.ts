@@ -33,27 +33,39 @@ describe("Supabase pull adapter", () => {
 
   it("maps remote buildings to local domain records", () => {
     const row: PublicTables["buildings"]["Row"] = {
+      agent_status: "unknown",
+      areas_to_check: [],
+      assigned_agent_name: null,
       access_notes: null,
       address: "12 rue du Controle",
       created_at: now,
       created_by: userId,
       deleted_at: null,
       id: buildingId,
+      internal_notes: null,
       last_control_at: null,
       name: "Batiment A",
       organization_id: organizationId,
+      priority_level: "high",
       priority_score: 80,
+      sector: "Secteur Nord",
+      service_days: [],
       updated_at: now,
     };
 
     expect(toBuilding(row)).toMatchObject({
-      accessNotes: null,
       address: "12 rue du Controle",
+      agentStatus: "unknown",
+      areasToCheck: [],
+      assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
       id: buildingId,
+      internalNotes: null,
       organizationId,
-      priorityScore: 80,
+      priorityLevel: "high",
+      sector: "Secteur Nord",
+      serviceDays: [],
       updatedAt: now,
     });
   });

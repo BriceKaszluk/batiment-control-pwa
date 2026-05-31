@@ -10,6 +10,14 @@ export type Database = {
   public: {
     CompositeTypes: Record<string, never>;
     Enums: {
+      agent_status:
+        | "present"
+        | "absent"
+        | "sick_leave"
+        | "paid_leave"
+        | "replacement"
+        | "unknown";
+      building_priority_level: "low" | "normal" | "high" | "critical";
       checklist_result_status: "compliant" | "non_compliant" | "not_applicable";
       control_status: "draft" | "completed" | "canceled";
       corrective_action_status: "open" | "in_progress" | "done" | "canceled";
@@ -33,43 +41,64 @@ export type Database = {
     Tables: {
       buildings: {
         Insert: {
+          agent_status?: Database["public"]["Enums"]["agent_status"];
+          areas_to_check?: Json;
+          assigned_agent_name?: string | null;
           access_notes?: string | null;
           address?: string | null;
           created_at?: string;
           created_by: string;
           deleted_at?: string | null;
           id: string;
+          internal_notes?: string | null;
           last_control_at?: string | null;
           name: string;
           organization_id: string;
+          priority_level?: Database["public"]["Enums"]["building_priority_level"];
           priority_score?: number;
+          sector?: string;
+          service_days?: Json;
           updated_at?: string;
         };
         Relationships: [];
         Row: {
+          agent_status: Database["public"]["Enums"]["agent_status"];
+          areas_to_check: Json;
+          assigned_agent_name: string | null;
           access_notes: string | null;
           address: string | null;
           created_at: string;
           created_by: string;
           deleted_at: string | null;
           id: string;
+          internal_notes: string | null;
           last_control_at: string | null;
           name: string;
           organization_id: string;
+          priority_level: Database["public"]["Enums"]["building_priority_level"];
           priority_score: number;
+          sector: string;
+          service_days: Json;
           updated_at: string;
         };
         Update: {
+          agent_status?: Database["public"]["Enums"]["agent_status"];
+          areas_to_check?: Json;
+          assigned_agent_name?: string | null;
           access_notes?: string | null;
           address?: string | null;
           created_at?: string;
           created_by?: string;
           deleted_at?: string | null;
           id?: string;
+          internal_notes?: string | null;
           last_control_at?: string | null;
           name?: string;
           organization_id?: string;
+          priority_level?: Database["public"]["Enums"]["building_priority_level"];
           priority_score?: number;
+          sector?: string;
+          service_days?: Json;
           updated_at?: string;
         };
       };

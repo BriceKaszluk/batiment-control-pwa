@@ -41,16 +41,21 @@ function createIdFactory(ids: readonly string[]) {
 }
 
 const building: Building = {
-  accessNotes: null,
   address: "12 rue du Controle",
+  agentStatus: "unknown",
+  areasToCheck: [],
+  assignedAgentName: null,
   createdAt: now,
   createdBy: userId,
   deletedAt: null,
   id: buildingId,
+  internalNotes: null,
   lastControlAt: null,
   name: "Batiment A",
   organizationId,
-  priorityScore: 75,
+  priorityLevel: "high",
+  sector: "Secteur Nord",
+  serviceDays: [],
   updatedAt: now,
 };
 
@@ -169,7 +174,7 @@ describe("local outbox", () => {
   it("does not write a record or outbox operation when validation fails", async () => {
     const invalidBuilding: Building = {
       ...building,
-      priorityScore: 120,
+      name: " ",
     };
 
     await expect(

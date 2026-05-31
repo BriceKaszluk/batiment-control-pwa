@@ -40,16 +40,21 @@ function createOperation(
 describe("Supabase sync adapter", () => {
   it("maps building payloads to Supabase insert rows", () => {
     const building: Building = {
-      accessNotes: null,
       address: "12 rue du Controle",
+      agentStatus: "unknown",
+      areasToCheck: [],
+      assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
       deletedAt: null,
       id: buildingId,
+      internalNotes: null,
       lastControlAt: null,
       name: "Batiment A",
       organizationId,
-      priorityScore: 75,
+      priorityLevel: "high",
+      sector: "Secteur Nord",
+      serviceDays: [],
       updatedAt: now,
     };
 
@@ -63,16 +68,22 @@ describe("Supabase sync adapter", () => {
       ),
     ).toEqual({
       row: {
-        access_notes: null,
+        agent_status: "unknown",
+        areas_to_check: [],
+        assigned_agent_name: null,
         address: "12 rue du Controle",
         created_at: now,
         created_by: userId,
         deleted_at: null,
         id: buildingId,
+        internal_notes: null,
         last_control_at: null,
         name: "Batiment A",
         organization_id: organizationId,
+        priority_level: "high",
         priority_score: 75,
+        sector: "Secteur Nord",
+        service_days: [],
         updated_at: now,
       },
       table: "buildings",

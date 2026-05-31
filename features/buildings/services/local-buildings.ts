@@ -4,7 +4,7 @@ import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import type { Building } from "@/types/domain";
 
-export type BuildingPriorityTone = "high" | "low" | "normal";
+export type BuildingPriorityTone = "critical" | "high" | "low" | "normal";
 
 export type ListBuildingsForUserOptions = {
   database?: BatimentControlDatabase;
@@ -51,7 +51,8 @@ export function compareBuildingsByFieldPriority(
   secondBuilding: Building,
 ) {
   const priorityDifference =
-    secondBuilding.priorityScore - firstBuilding.priorityScore;
+    toPriorityRank(secondBuilding.priorityLevel) -
+    toPriorityRank(firstBuilding.priorityLevel);
 
   if (priorityDifference !== 0) {
     return priorityDifference;
@@ -69,21 +70,17 @@ export function compareBuildingsByFieldPriority(
 }
 
 export function getBuildingPriorityTone(
-  priorityScore: number,
+  priorityLevel: Building["priorityLevel"],
 ): BuildingPriorityTone {
-  if (priorityScore >= 70) {
-    return "high";
-  }
-
-  if (priorityScore <= 30) {
-    return "low";
-  }
-
-  return "normal";
+  return priorityLevel;
 }
 
-export function getBuildingPriorityLabel(priorityScore: number) {
-  const tone = getBuildingPriorityTone(priorityScore);
+export function getBuildingPriorityLabel(priorityLevel: Building["priorityLevel"]) {
+  const tone = getBuildingPriorityTone(priorityLevel);
+
+  if (tone === "critical") {
+    return "Priorite critique";
+  }
 
   if (tone === "high") {
     return "Priorite haute";
@@ -98,4 +95,20 @@ export function getBuildingPriorityLabel(priorityScore: number) {
 
 function toLastControlRank(lastControlAt: string | null) {
   return lastControlAt ? Date.parse(lastControlAt) : Number.NEGATIVE_INFINITY;
+}
+
+function toPriorityRank(priorityLevel: Building["priorityLevel"]) {
+  if (priorityLevel === "critical") {
+    return 3;
+  }
+
+  if (priorityLevel === "high") {
+    return 2;
+  }
+
+  if (priorityLevel === "normal") {
+    return 1;
+  }
+
+  return 0;
 }

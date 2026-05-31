@@ -1,4 +1,5 @@
-import { Building2, Clock3, MapPin } from "lucide-react";
+import { Building2, Clock3, MapPin, Pencil } from "lucide-react";
+import Link from "next/link";
 
 import {
   getBuildingPriorityLabel,
@@ -6,13 +7,15 @@ import {
   type BuildingPriorityTone,
 } from "@/features/buildings/services/local-buildings";
 import { StartControlButton } from "@/features/controls/components/start-control-button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Building } from "@/types/domain";
 
 const priorityToneClasses: Record<BuildingPriorityTone, string> = {
-  high: "border-red-200 bg-red-50 text-red-700",
+  critical: "border-red-300 bg-red-50 text-red-800",
+  high: "border-amber-200 bg-amber-50 text-amber-900",
   low: "border-slate-200 bg-slate-50 text-slate-700",
-  normal: "border-amber-200 bg-amber-50 text-amber-800",
+  normal: "border-emerald-200 bg-emerald-50 text-emerald-900",
 };
 
 type BuildingListItemProps = {
@@ -24,7 +27,7 @@ export function BuildingListItem({
   building,
   userId,
 }: Readonly<BuildingListItemProps>) {
-  const priorityTone = getBuildingPriorityTone(building.priorityScore);
+  const priorityTone = getBuildingPriorityTone(building.priorityLevel);
 
   return (
     <article className="rounded-md border bg-background p-4 shadow-sm">
@@ -37,18 +40,18 @@ export function BuildingListItem({
           <p className="flex items-start gap-2 text-sm leading-5 text-muted-foreground">
             <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             <span className="min-w-0 break-words">
-              {building.address ?? "Adresse non renseignee"}
+              {building.address}
             </span>
           </p>
+          <p className="text-sm font-medium text-muted-foreground">
+            Secteur: {building.sector}
+          </p>
         </div>
-        <span
-          className={cn(
-            "shrink-0 rounded-md border px-2 py-1 text-xs font-medium",
-            priorityToneClasses[priorityTone],
-          )}
-        >
-          {building.priorityScore}
-        </span>
+        <Button asChild className="size-10 shrink-0" size="icon" variant="outline">
+          <Link aria-label="Modifier le batiment" href={`/batiments/${building.id}`}>
+            <Pencil aria-hidden="true" className="size-4" />
+          </Link>
+        </Button>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium">
         <span
@@ -57,7 +60,7 @@ export function BuildingListItem({
             priorityToneClasses[priorityTone],
           )}
         >
-          {getBuildingPriorityLabel(building.priorityScore)}
+          {getBuildingPriorityLabel(building.priorityLevel)}
         </span>
         <span className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-muted-foreground">
           <Clock3 aria-hidden="true" className="size-3.5" />

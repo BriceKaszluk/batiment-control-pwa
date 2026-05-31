@@ -46,6 +46,12 @@ const versionThreeStores = {
     "&id, &idempotencyKey, organizationId, photoId, controlId, status, createdAt, updatedAt, nextAttemptAt, [status+createdAt], [organizationId+status], [photoId+status]",
 };
 
+const versionFourStores = {
+  ...versionThreeStores,
+  buildings:
+    "&id, organizationId, deletedAt, updatedAt, priorityLevel, [organizationId+deletedAt], [organizationId+priorityLevel]",
+};
+
 export class BatimentControlDatabase extends Dexie {
   buildings!: Table<Building, string>;
   checklistItems!: Table<ChecklistItem, string>;
@@ -64,5 +70,49 @@ export class BatimentControlDatabase extends Dexie {
     this.version(1).stores(versionOneStores);
     this.version(2).stores(versionTwoStores);
     this.version(3).stores(versionThreeStores);
+    this.version(4)
+      .stores(versionFourStores)
+      .upgrade((tx) =>
+        tx
+          .table("buildings")
+          .toCollection()
+          .modify((building) => {
+            const record = building as Record<string, unknown>;
+
+            // Ensure new required fields exist on older local rows.
+            record.address =
+              typeof record.address === "string" && record.address.trim().length > 0
+                ? record.address
+                : "Adresse non renseignee";
+            record.sector =
+              typeof record.sector === "string" && record.sector.trim().length > 0
+                ? record.sector
+                : "Secteur non renseigne";
+            record.agentStatus =
+              typeof record.agentStatus === "string" ? record.agentStatus : "unknown";
+            record.assignedAgentName =
+              record.assignedAgentName === undefined ? null : record.assignedAgentName;
+            record.internalNotes =
+              record.internalNotes === undefined ? (record.accessNotes ?? null) : record.internalNotes;
+            record.serviceDays =
+              Array.isArray(record.serviceDays) ? record.serviceDays : [];
+            record.areasToCheck =
+              Array.isArray(record.areasToCheck) ? record.areasToCheck : [];
+
+            if (typeof record.priorityLevel !== "string") {
+              const legacyScore =
+                typeof record.priorityScore === "number" ? record.priorityScore : 50;
+
+              record.priorityLevel =
+                legacyScore >= 85
+                  ? "critical"
+                  : legacyScore >= 70
+                    ? "high"
+                    : legacyScore <= 30
+                      ? "low"
+                      : "normal";
+            }
+          }),
+      );
   }
 }

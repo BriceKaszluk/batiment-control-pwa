@@ -1,12 +1,15 @@
 "use client";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 
 import { createClient } from "@/lib/supabase/client";
+import { createEmptyRemoteSnapshot, type RemoteSnapshot } from "@/lib/sync/remote-snapshot";
 import {
-  createEmptyRemoteSnapshot,
-  type RemoteSnapshot,
-} from "@/lib/sync/remote-snapshot";
+  buildingAreaSchema,
+  buildingPriorityLevelSchema,
+  buildingServiceDaySchema,
+} from "@/lib/validation/schemas";
 import type {
   Building,
   ChecklistItem,
@@ -103,16 +106,21 @@ export function toOrganizationMember(
 
 export function toBuilding(row: PublicTables["buildings"]["Row"]): Building {
   return {
-    accessNotes: row.access_notes,
-    address: row.address,
+    address: (row.address ?? "Adresse non renseignee").trim(),
+    agentStatus: row.agent_status,
+    areasToCheck: z.array(buildingAreaSchema).parse(row.areas_to_check),
+    assignedAgentName: row.assigned_agent_name,
     createdAt: row.created_at,
     createdBy: row.created_by,
     deletedAt: row.deleted_at,
     id: row.id,
+    internalNotes: row.internal_notes ?? row.access_notes,
     lastControlAt: row.last_control_at,
     name: row.name,
     organizationId: row.organization_id,
-    priorityScore: row.priority_score,
+    priorityLevel: buildingPriorityLevelSchema.parse(row.priority_level),
+    sector: row.sector,
+    serviceDays: z.array(buildingServiceDaySchema).parse(row.service_days),
     updatedAt: row.updated_at,
   };
 }

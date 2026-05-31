@@ -16,38 +16,153 @@ const now = "2026-05-31T00:00:00.000Z";
 describe("domain schemas", () => {
   it("accepts a valid building", () => {
     const result = buildingSchema.safeParse({
-      accessNotes: null,
       address: "12 rue du Controle",
+      agentStatus: "unknown",
+      areasToCheck: [],
+      assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
       deletedAt: null,
       id: buildingId,
+      internalNotes: null,
       lastControlAt: null,
       name: "Batiment A",
       organizationId,
-      priorityScore: 80,
+      priorityLevel: "high",
+      sector: "Secteur Nord",
+      serviceDays: [],
       updatedAt: now,
     });
 
     expect(result.success).toBe(true);
   });
 
-  it("rejects an out-of-range building priority", () => {
+  it("rejects buildings with an empty name", () => {
     const result = buildingSchema.safeParse({
-      accessNotes: null,
-      address: null,
+      address: "12 rue du Controle",
+      agentStatus: "unknown",
+      areasToCheck: [],
+      assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
       deletedAt: null,
       id: buildingId,
+      internalNotes: null,
       lastControlAt: null,
-      name: "Batiment A",
+      name: "   ",
       organizationId,
-      priorityScore: 101,
+      priorityLevel: "normal",
+      sector: "Secteur Nord",
+      serviceDays: [],
       updatedAt: now,
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("rejects buildings with an empty address", () => {
+    const result = buildingSchema.safeParse({
+      address: " ",
+      agentStatus: "unknown",
+      areasToCheck: [],
+      assignedAgentName: null,
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: buildingId,
+      internalNotes: null,
+      lastControlAt: null,
+      name: "Batiment A",
+      organizationId,
+      priorityLevel: "normal",
+      sector: "Secteur Nord",
+      serviceDays: [],
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects buildings with an empty sector", () => {
+    const result = buildingSchema.safeParse({
+      address: "12 rue du Controle",
+      agentStatus: "unknown",
+      areasToCheck: [],
+      assignedAgentName: null,
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: buildingId,
+      internalNotes: null,
+      lastControlAt: null,
+      name: "Batiment A",
+      organizationId,
+      priorityLevel: "normal",
+      sector: " ",
+      serviceDays: [],
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts buildings with multiple service days", () => {
+    const result = buildingSchema.safeParse({
+      address: "12 rue du Controle",
+      agentStatus: "present",
+      areasToCheck: [],
+      assignedAgentName: "Agent A",
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: buildingId,
+      internalNotes: null,
+      lastControlAt: null,
+      name: "Batiment A",
+      organizationId,
+      priorityLevel: "critical",
+      sector: "Secteur Nord",
+      serviceDays: [
+        {
+          day: "monday",
+          id: "77777777-7777-4777-8777-777777777777",
+          note: null,
+          tasks: ["outdoor", "entrance_hall"],
+        },
+        {
+          day: "friday",
+          id: "88888888-8888-4888-8888-888888888888",
+          note: "Local poubelle uniquement le vendredi",
+          tasks: ["trash_room"],
+        },
+      ],
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts buildings with areas to check", () => {
+    const result = buildingSchema.safeParse({
+      address: "12 rue du Controle",
+      agentStatus: "unknown",
+      areasToCheck: ["outdoor", "entrance_hall", "trash_room"],
+      assignedAgentName: null,
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: buildingId,
+      internalNotes: null,
+      lastControlAt: null,
+      name: "Batiment A",
+      organizationId,
+      priorityLevel: "high",
+      sector: "Secteur Nord",
+      serviceDays: [],
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(true);
   });
 
   it("requires completed controls to have a completion date", () => {

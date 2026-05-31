@@ -19,7 +19,54 @@ export const photoUploadStatuses = [
   "synced",
   "error",
 ] as const;
+export const agentStatuses = [
+  "present",
+  "absent",
+  "sick_leave",
+  "paid_leave",
+  "replacement",
+  "unknown",
+] as const;
+export const buildingPriorityLevels = [
+  "low",
+  "normal",
+  "high",
+  "critical",
+] as const;
 export const priorityLevels = ["low", "normal", "high"] as const;
+export const weekDays = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+export const buildingAreas = [
+  "outdoor",
+  "entrance_hall",
+  "floor_landings",
+  "stairs",
+  "elevator",
+  "bike_room",
+  "basement",
+  "trash_room",
+] as const;
+export const serviceTasks = [
+  "outdoor",
+  "entrance_hall",
+  "floor_landings",
+  "stairs",
+  "elevator",
+  "bike_room",
+  "basement",
+  "trash_room",
+  "windows",
+  "dusting",
+  "floor_cleaning",
+  "touchpoint_disinfection",
+] as const;
 export const photoMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export const memberRoleSchema = z.enum(memberRoles);
@@ -27,7 +74,12 @@ export const controlStatusSchema = z.enum(controlStatuses);
 export const checklistResultStatusSchema = z.enum(checklistResultStatuses);
 export const correctiveActionStatusSchema = z.enum(correctiveActionStatuses);
 export const photoUploadStatusSchema = z.enum(photoUploadStatuses);
+export const agentStatusSchema = z.enum(agentStatuses);
+export const buildingPriorityLevelSchema = z.enum(buildingPriorityLevels);
 export const priorityLevelSchema = z.enum(priorityLevels);
+export const weekDaySchema = z.enum(weekDays);
+export const buildingAreaSchema = z.enum(buildingAreas);
+export const serviceTaskSchema = z.enum(serviceTasks);
 export const photoMimeTypeSchema = z.enum(photoMimeTypes);
 
 const uuidSchema = z.string().uuid();
@@ -41,6 +93,15 @@ const blobSchema = z.custom<Blob>(
 function nullableText(maxLength: number) {
   return z.string().trim().max(maxLength).nullable();
 }
+
+export const buildingServiceDaySchema = z
+  .object({
+    day: weekDaySchema,
+    id: uuidSchema,
+    note: nullableText(1000).default(null),
+    tasks: z.array(serviceTaskSchema).min(1),
+  })
+  .strict();
 
 export const organizationSchema = z
   .object({
@@ -62,16 +123,29 @@ export const organizationMemberSchema = z
 
 export const buildingSchema = z
   .object({
-    accessNotes: nullableText(1000),
-    address: nullableText(240),
+    address: z.string().trim().min(1).max(240),
+    agentStatus: agentStatusSchema.default("unknown"),
+    areasToCheck: z.array(buildingAreaSchema).default([]),
+    assignedAgentName: nullableText(160).default(null),
     createdAt: isoDateTimeSchema,
     createdBy: uuidSchema,
     deletedAt: isoDateTimeSchema.nullable(),
     id: uuidSchema,
+    internalNotes: nullableText(3000).default(null),
     lastControlAt: isoDateTimeSchema.nullable(),
     name: z.string().trim().min(1).max(160),
     organizationId: uuidSchema,
-    priorityScore: z.number().int().min(0).max(100),
+    priorityLevel: buildingPriorityLevelSchema.default("normal"),
+    sector: z.string().trim().min(1).max(160),
+    serviceDays: z
+      .array(
+        buildingServiceDaySchema,
+      )
+      .default([])
+      .refine((serviceDays) => {
+        const uniqueDays = new Set(serviceDays.map((entry) => entry.day));
+        return uniqueDays.size === serviceDays.length;
+      }, "Chaque jour de prestation ne peut etre defini qu'une seule fois."),
     updatedAt: isoDateTimeSchema,
   })
   .strict();
@@ -194,15 +268,25 @@ export const photoUploadSchema = z
   })
   .strict();
 
-export const buildingCreateSchema = buildingSchema.pick({
-  accessNotes: true,
-  address: true,
-  createdBy: true,
-  id: true,
-  name: true,
-  organizationId: true,
-  priorityScore: true,
-});
+export const buildingCreateSchema = z
+  .object({
+    address: buildingSchema.shape.address,
+    agentStatus: agentStatusSchema.default("unknown"),
+    areasToCheck: z.array(buildingAreaSchema).default([]),
+    assignedAgentName: nullableText(160).optional().default(null),
+    internalNotes: nullableText(3000).optional().default(null),
+    name: buildingSchema.shape.name,
+    priorityLevel: buildingPriorityLevelSchema.default("normal"),
+    sector: buildingSchema.shape.sector,
+    serviceDays: z
+      .array(buildingServiceDaySchema)
+      .default([])
+      .refine((serviceDays) => {
+        const uniqueDays = new Set(serviceDays.map((entry) => entry.day));
+        return uniqueDays.size === serviceDays.length;
+      }, "Chaque jour de prestation ne peut etre defini qu'une seule fois."),
+  })
+  .strict();
 
 export const controlCreateSchema = controlObjectSchema.pick({
   buildingId: true,
