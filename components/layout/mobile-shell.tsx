@@ -1,35 +1,18 @@
 "use client";
 
-import {
-  Building2,
-  ClipboardCheck,
-  History,
-  Home,
-  LogOut,
-  RotateCcw,
-  Settings,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType, ReactNode, SVGProps } from "react";
+import type { ReactNode } from "react";
 
+import {
+  getCurrentNavigationItem,
+  isNavigationItemActive,
+  navigationItems,
+} from "@/components/layout/navigation-items";
 import { signOut } from "@/features/auth/actions";
+import { SyncStatusBar } from "@/features/sync/components/sync-status-bar";
 import { cn } from "@/lib/utils";
-
-type NavigationItem = {
-  href: string;
-  label: string;
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
-};
-
-const navigationItems: NavigationItem[] = [
-  { href: "/dashboard", label: "Accueil", icon: Home },
-  { href: "/batiments", label: "Batiments", icon: Building2 },
-  { href: "/controles", label: "Controles", icon: ClipboardCheck },
-  { href: "/reprises", label: "Reprises", icon: RotateCcw },
-  { href: "/historique", label: "Historique", icon: History },
-  { href: "/parametres", label: "Reglages", icon: Settings },
-];
 
 type MobileShellProps = {
   authConfigured: boolean;
@@ -43,36 +26,39 @@ export function MobileShell({
   userEmail,
 }: Readonly<MobileShellProps>) {
   const pathname = usePathname();
-  const currentItem =
-    navigationItems.find((item) => pathname.startsWith(item.href)) ??
-    navigationItems[0];
+  const currentItem = getCurrentNavigationItem(pathname);
 
   return (
     <div className="min-h-svh bg-background">
-      <header className="sticky top-0 z-20 border-b bg-background/95 px-4 py-3 backdrop-blur">
-        <div className="mx-auto flex max-w-screen-sm items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-              Batiment Control
-            </p>
-            <p className="text-lg font-semibold">{currentItem.label}</p>
-          </div>
-          {authConfigured ? (
-            <form action={signOut}>
-              <button
-                aria-label="Deconnexion"
-                className="flex size-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                title={userEmail ?? "Deconnexion"}
-                type="submit"
-              >
-                <LogOut aria-hidden="true" className="size-5" />
-              </button>
-            </form>
-          ) : (
-            <div className="rounded-md bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
-              Config
+      <header className="sticky top-0 z-20 border-b bg-background/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
+        <div className="mx-auto flex max-w-screen-sm flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                Batiment Control
+              </p>
+              <p className="truncate text-lg font-semibold">
+                {currentItem.label}
+              </p>
             </div>
-          )}
+            {authConfigured ? (
+              <form action={signOut}>
+                <button
+                  aria-label="Deconnexion"
+                  className="flex size-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  title={userEmail ?? "Deconnexion"}
+                  type="submit"
+                >
+                  <LogOut aria-hidden="true" className="size-5" />
+                </button>
+              </form>
+            ) : (
+              <div className="rounded-md bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground">
+                Config
+              </div>
+            )}
+          </div>
+          <SyncStatusBar />
         </div>
       </header>
 
@@ -84,7 +70,7 @@ export function MobileShell({
         <div className="mx-auto flex max-w-screen-sm gap-1 overflow-x-auto">
           {navigationItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname.startsWith(item.href);
+            const isActive = isNavigationItemActive(pathname, item.href);
 
             return (
               <Link
