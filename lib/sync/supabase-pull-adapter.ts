@@ -33,10 +33,12 @@ export function createSupabaseRemotePullAdapter(
 ): RemotePullAdapter {
   return {
     async pullForUser(userId) {
+      const personalWorkspace = await ensurePersonalWorkspace(client);
       const { data: membershipRows, error: membershipError } = await client
         .from("organization_members")
         .select("*")
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("organization_id", personalWorkspace.organization_id);
       throwIfSupabaseError(membershipError);
 
       const organizationMembers = (membershipRows ?? []).map(
@@ -89,7 +91,9 @@ export function toOrganization(
     createdAt: row.created_at,
     id: row.id,
     name: row.name,
+    ownerId: row.owner_id,
     updatedAt: row.updated_at,
+    workspaceType: row.workspace_type,
   };
 }
 
@@ -278,4 +282,19 @@ function throwIfSupabaseError(error: { message: string } | null) {
   if (error) {
     throw new Error(error.message);
   }
+}
+
+async function ensurePersonalWorkspace(client: BrowserSupabaseClient) {
+  const { data, error } = await client.rpc("ensure_personal_workspace", {
+    workspace_name: "Mon espace",
+  });
+  throwIfSupabaseError(error);
+
+  const workspace = data?.[0];
+
+  if (!workspace) {
+    throw new Error("Espace personnel indisponible.");
+  }
+
+  return workspace;
 }

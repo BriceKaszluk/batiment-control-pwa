@@ -107,7 +107,6 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
   const [formError, setFormError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isEdit) {
@@ -128,7 +127,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
       return;
     }
 
-    if (organizationsState.organizations.length === 1) {
+    if (organizationsState.organizations.length > 0) {
       setOrganizationId(organizationsState.organizations[0].id);
     }
   }, [building, isEdit, organizationsState.organizations]);
@@ -173,14 +172,28 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
     };
   }
 
-  const hasOrganizationSelector = !isEdit && organizationsState.organizations.length > 1;
-
   return (
     <div className="space-y-6">
       {organizationsState.error ? (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
           <AlertTriangle aria-hidden="true" className="size-4" />
-          Organisations locales indisponibles
+          Espace personnel local indisponible
+        </div>
+      ) : null}
+
+      {!isEdit && organizationsState.isLoading ? (
+        <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">
+          <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+          Preparation de l&apos;espace personnel
+        </div>
+      ) : null}
+
+      {!isEdit &&
+      !organizationsState.isLoading &&
+      organizationsState.organizations.length === 0 ? (
+        <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
+          <AlertTriangle aria-hidden="true" className="size-4" />
+          Synchronisez pour preparer votre espace personnel
         </div>
       ) : null}
 
@@ -189,35 +202,6 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
           <AlertTriangle aria-hidden="true" className="size-4" />
           {formError}
         </div>
-      ) : null}
-
-      {savedMessage ? (
-        <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
-          {savedMessage}
-        </div>
-      ) : null}
-
-      {hasOrganizationSelector ? (
-        <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
-          <h2 className="text-base font-semibold">Organisation</h2>
-          <label className="block space-y-2 text-sm font-medium">
-            <span>Organisation</span>
-            <select
-              className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-              onChange={(event) => {
-                setOrganizationId(event.target.value);
-              }}
-              value={organizationId}
-            >
-              <option value="">Choisir</option>
-              {organizationsState.organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
       ) : null}
 
       <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
@@ -524,7 +508,6 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
           className="h-12 w-full"
           disabled={!canSave || isSaving || isDeleting}
           onClick={() => {
-            setSavedMessage(null);
             setFormError(null);
             setFieldErrors({});
 
@@ -561,7 +544,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
             }
 
             if (!isEdit && organizationId.length === 0) {
-              setFormError("Organisation requise.");
+              setFormError("Espace personnel requis.");
               return;
             }
 
@@ -581,11 +564,11 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
             void operation
               .then(() => {
-                setSavedMessage("Enregistre en local.");
-
-                if (!isEdit) {
-                  router.push("/batiments");
-                }
+                router.push(
+                  isEdit
+                    ? "/batiments?notice=batiment-enregistre"
+                    : "/batiments?notice=batiment-cree",
+                );
               })
               .catch((error: unknown) => {
                 setFormError(
@@ -611,7 +594,6 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
             className="h-12 w-full border-red-200 text-red-700 hover:bg-red-50"
             disabled={!userId || !building || isSaving || isDeleting}
             onClick={() => {
-              setSavedMessage(null);
               setFormError(null);
               setFieldErrors({});
 
@@ -631,7 +613,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
               void deleteBuilding({ buildingId: building.id, userId })
                 .then(() => {
-                  router.push("/batiments");
+                  router.push("/batiments?notice=batiment-supprime");
                 })
                 .catch((error: unknown) => {
                   setFormError(

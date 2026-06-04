@@ -29,14 +29,16 @@ export function SyncStatusBar({
 }: Readonly<SyncStatusBarProps>) {
   const networkStatus = useNetworkStatus();
   const { error, isLoading, summary } = useOutboxStatusSummary();
+  const syncStatus = getSyncStatusIndicator(summary);
   const outboxSync = useOutboxSync({
     enabled: syncEnabled,
     networkStatus,
+    waitingCount: syncStatus.waitingCount,
     userId,
   });
-  const syncStatus = getSyncStatusIndicator(summary);
   const isOffline = networkStatus === "offline";
-  const canSync = syncEnabled && !isOffline && !outboxSync.isSyncing;
+  const canSync =
+    syncEnabled && Boolean(userId) && !isOffline && !outboxSync.isSyncing;
   const NetworkIcon = isOffline ? WifiOff : Wifi;
   const syncError = error ?? outboxSync.error;
 
@@ -63,6 +65,7 @@ export function SyncStatusBar({
             ? syncToneClasses.error
             : syncToneClasses[syncStatus.tone],
         )}
+        title={syncError ?? syncStatus.label}
       >
         <RefreshCw
           aria-hidden="true"
@@ -88,7 +91,11 @@ export function SyncStatusBar({
         onClick={() => {
           void outboxSync.syncNow();
         }}
-        title="Synchroniser maintenant"
+        title={
+          userId
+            ? "Synchroniser maintenant"
+            : "Connexion utilisateur en cours"
+        }
         type="button"
       >
         <RefreshCw
@@ -97,6 +104,11 @@ export function SyncStatusBar({
         />
         Synchroniser
       </button>
+      {syncError ? (
+        <p className="basis-full text-xs font-medium text-red-700">
+          {syncError}
+        </p>
+      ) : null}
     </div>
   );
 }

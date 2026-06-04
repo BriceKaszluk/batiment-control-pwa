@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const memberRoles = ["owner", "admin", "team_lead", "cleaner"] as const;
+export const workspaceTypes = ["personal", "team"] as const;
 export const controlStatuses = ["draft", "completed", "canceled"] as const;
 export const checklistResultStatuses = [
   "compliant",
@@ -70,6 +71,7 @@ export const serviceTasks = [
 export const photoMimeTypes = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export const memberRoleSchema = z.enum(memberRoles);
+export const workspaceTypeSchema = z.enum(workspaceTypes);
 export const controlStatusSchema = z.enum(controlStatuses);
 export const checklistResultStatusSchema = z.enum(checklistResultStatuses);
 export const correctiveActionStatusSchema = z.enum(correctiveActionStatuses);
@@ -108,7 +110,9 @@ export const organizationSchema = z
     createdAt: isoDateTimeSchema,
     id: uuidSchema,
     name: z.string().trim().min(1).max(160),
+    ownerId: uuidSchema.nullable().default(null),
     updatedAt: isoDateTimeSchema,
+    workspaceType: workspaceTypeSchema.default("team"),
   })
   .strict();
 

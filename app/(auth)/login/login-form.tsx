@@ -3,10 +3,8 @@
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
-import {
-  initialLoginFormState,
-  signInWithPassword,
-} from "@/features/auth/actions";
+import { signInWithPassword } from "@/features/auth/actions";
+import { initialLoginFormState } from "@/features/auth/login-form-state";
 
 export function LoginForm() {
   const [state, formAction] = useActionState(

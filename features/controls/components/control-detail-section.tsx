@@ -69,8 +69,6 @@ export function ControlDetailSection({
         </p>
       </div>
 
-      <CompleteControlButton control={detail.control} userId={userId} />
-
       <ControlCommentEditor control={detail.control} userId={userId} />
 
       <ControlPhotosSection
@@ -102,6 +100,8 @@ export function ControlDetailSection({
         controlId={detail.control.id}
         userId={userId}
       />
+
+      <CompleteControlButton control={detail.control} userId={userId} />
     </section>
   );
 }

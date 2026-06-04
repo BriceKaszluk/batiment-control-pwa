@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   toBuilding,
   toChecklistResult,
+  toOrganization,
   toOrganizationMember,
 } from "@/lib/sync/supabase-pull-adapter";
 import type { Database } from "@/types/supabase";
@@ -15,6 +16,26 @@ const userId = "22222222-2222-4222-8222-222222222222";
 const buildingId = "33333333-3333-4333-8333-333333333333";
 
 describe("Supabase pull adapter", () => {
+  it("maps personal workspace organizations", () => {
+    const row: PublicTables["organizations"]["Row"] = {
+      created_at: now,
+      id: organizationId,
+      name: "Mon espace",
+      owner_id: userId,
+      updated_at: now,
+      workspace_type: "personal",
+    };
+
+    expect(toOrganization(row)).toEqual({
+      createdAt: now,
+      id: organizationId,
+      name: "Mon espace",
+      ownerId: userId,
+      updatedAt: now,
+      workspaceType: "personal",
+    });
+  });
+
   it("maps organization memberships to local camelCase fields", () => {
     const row: PublicTables["organization_members"]["Row"] = {
       created_at: now,

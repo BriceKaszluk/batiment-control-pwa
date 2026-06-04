@@ -23,8 +23,18 @@ export type Database = {
       corrective_action_status: "open" | "in_progress" | "done" | "canceled";
       member_role: "owner" | "admin" | "team_lead" | "cleaner";
       priority_level: "low" | "normal" | "high";
+      workspace_type: "personal" | "team";
     };
     Functions: {
+      ensure_personal_workspace: {
+        Args: { workspace_name?: string | null };
+        Returns: {
+          created_at: string;
+          organization_id: string;
+          organization_name: string;
+          updated_at: string;
+        }[];
+      };
       is_org_admin: {
         Args: { target_organization_id: string };
         Returns: boolean;
@@ -353,20 +363,26 @@ export type Database = {
           created_at?: string;
           id?: string;
           name: string;
+          owner_id?: string | null;
           updated_at?: string;
+          workspace_type?: Database["public"]["Enums"]["workspace_type"];
         };
         Relationships: [];
         Row: {
           created_at: string;
           id: string;
           name: string;
+          owner_id: string | null;
           updated_at: string;
+          workspace_type: Database["public"]["Enums"]["workspace_type"];
         };
         Update: {
           created_at?: string;
           id?: string;
           name?: string;
+          owner_id?: string | null;
           updated_at?: string;
+          workspace_type?: Database["public"]["Enums"]["workspace_type"];
         };
       };
     };

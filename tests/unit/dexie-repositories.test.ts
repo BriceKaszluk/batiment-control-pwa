@@ -21,7 +21,9 @@ const organization: Organization = {
   createdAt: now,
   id: organizationId,
   name: "Equipe Nord",
+  ownerId: userId,
   updatedAt: now,
+  workspaceType: "personal",
 };
 
 const organizationMember: OrganizationMember = {

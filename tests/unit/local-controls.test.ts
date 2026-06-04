@@ -121,6 +121,53 @@ describe("local controls", () => {
       controlledBy: userId,
       status: "draft",
     });
+    expect(result.reusedExisting).toBe(false);
+  });
+
+  it("reuses an existing draft control for the same building and user", async () => {
+    const existingDraftControl = createControl({
+      id: controlId,
+      startedAt: now,
+    });
+
+    await database.controls.put(existingDraftControl);
+
+    const result = await startDraftControl({
+      building,
+      createId: createIdFactory([mutationId, operationId]),
+      database,
+      now: () => later,
+      userId,
+    });
+
+    expect(result).toEqual({
+      outboxOperation: null,
+      record: existingDraftControl,
+      reusedExisting: true,
+    });
+    await expect(database.controls.count()).resolves.toBe(1);
+    await expect(database.outbox.count()).resolves.toBe(0);
+  });
+
+  it("creates a new draft when the existing control is completed", async () => {
+    await database.controls.put(
+      createControl({
+        completedAt: now,
+        status: "completed",
+      }),
+    );
+
+    const result = await startDraftControl({
+      building,
+      createId: createIdFactory([mutationId, operationId, controlId]),
+      database,
+      now: () => later,
+      userId,
+    });
+
+    expect(result.reusedExisting).toBe(false);
+    await expect(database.controls.count()).resolves.toBe(2);
+    await expect(database.outbox.count()).resolves.toBe(1);
   });
 
   it("requires a user before creating a local control", async () => {

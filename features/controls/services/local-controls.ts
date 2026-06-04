@@ -7,7 +7,7 @@ import { enqueueOutboxOperationInCurrentTransaction } from "@/lib/sync/outbox";
 import { parseOutboxPayload } from "@/lib/validation/sync-schemas";
 import { buildingSchema, controlSchema } from "@/lib/validation/schemas";
 import type { Building, Control } from "@/types/domain";
-import type { LocalMutationResult, OutboxOperation } from "@/types/sync";
+import type { OutboxOperation } from "@/types/sync";
 
 export type LocalControlSummary = {
   building: Building | undefined;
@@ -24,6 +24,12 @@ export type CompleteControlResult = {
   building: Building;
   control: Control;
   outboxOperations: [OutboxOperation, OutboxOperation];
+};
+
+export type StartDraftControlResult = {
+  outboxOperation: OutboxOperation | null;
+  record: Control;
+  reusedExisting: boolean;
 };
 
 export type CompleteControlOptions = {
@@ -164,9 +170,23 @@ export async function startDraftControl({
   database = db,
   now = () => new Date().toISOString(),
   userId,
-}: StartDraftControlOptions): Promise<LocalMutationResult<Control>> {
+}: StartDraftControlOptions): Promise<StartDraftControlResult> {
   if (!userId) {
     throw new Error("Utilisateur requis pour demarrer un controle.");
+  }
+
+  const existingDraftControl = await findExistingDraftControl({
+    building,
+    database,
+    userId,
+  });
+
+  if (existingDraftControl) {
+    return {
+      outboxOperation: null,
+      record: existingDraftControl,
+      reusedExisting: true,
+    };
   }
 
   const timestamp = now();
@@ -184,7 +204,7 @@ export async function startDraftControl({
     updatedAt: timestamp,
   };
 
-  return saveLocalMutation({
+  const result = await saveLocalMutation({
     clientMutationId,
     createId,
     database,
@@ -194,6 +214,11 @@ export async function startDraftControl({
     schema: controlSchema,
     table: database.controls,
   });
+
+  return {
+    ...result,
+    reusedExisting: false,
+  };
 }
 
 export async function listControlsForUser({
@@ -315,4 +340,28 @@ function compareControlsByCompletedAt(
 
 function toControlCompletionRank(control: Control) {
   return Date.parse(control.completedAt ?? control.startedAt);
+}
+
+async function findExistingDraftControl({
+  building,
+  database,
+  userId,
+}: {
+  building: Building;
+  database: BatimentControlDatabase;
+  userId: string;
+}): Promise<Control | null> {
+  const draftControls = await database.controls
+    .where("[organizationId+buildingId]")
+    .equals([building.organizationId, building.id])
+    .filter(
+      (control) =>
+        control.controlledBy === userId &&
+        control.deletedAt === null &&
+        control.status === "draft",
+    )
+    .toArray();
+  const [latestDraftControl] = draftControls.sort(compareControlsByStartedAt);
+
+  return latestDraftControl ?? null;
 }

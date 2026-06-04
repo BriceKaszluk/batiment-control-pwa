@@ -2,7 +2,7 @@
 
 import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
-import type { Building } from "@/types/domain";
+import type { Building, Organization } from "@/types/domain";
 
 export type BuildingPriorityTone = "critical" | "high" | "low" | "normal";
 
@@ -33,9 +33,21 @@ export async function listBuildingsForUser({
     return [];
   }
 
+  const organizations = await database.organizations.bulkGet(organizationIds);
+  const personalOrganizationIds = organizations
+    .filter(
+      (organization): organization is Organization =>
+        organization !== undefined &&
+        organization.ownerId === userId &&
+        organization.workspaceType === "personal",
+    )
+    .map((organization) => organization.id);
+  const visibleOrganizationIds =
+    personalOrganizationIds.length > 0 ? personalOrganizationIds : organizationIds;
+
   const buildings = await database.buildings
     .where("organizationId")
-    .anyOf(organizationIds)
+    .anyOf(visibleOrganizationIds)
     .filter((building) => building.deletedAt === null)
     .toArray();
 

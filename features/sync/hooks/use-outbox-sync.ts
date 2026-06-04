@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { NetworkStatus } from "@/features/sync/hooks/use-network-status";
+import { shouldStartAutoSync } from "@/features/sync/services/auto-sync";
 import { createClient } from "@/lib/supabase/client";
 import {
   createPhotoUploadSyncEngine,
@@ -18,8 +19,10 @@ import {
 } from "@/lib/sync/sync-engine";
 
 type UseOutboxSyncOptions = {
+  autoRetryIntervalMs?: number;
   enabled: boolean;
   networkStatus: NetworkStatus;
+  waitingCount: number;
   userId: string | null;
 };
 
@@ -30,8 +33,10 @@ type OutboxSyncState = {
 };
 
 export function useOutboxSync({
+  autoRetryIntervalMs = 30_000,
   enabled,
   networkStatus,
+  waitingCount,
   userId,
 }: UseOutboxSyncOptions) {
   const isSyncingRef = useRef(false);
@@ -100,10 +105,66 @@ export function useOutboxSync({
   }, [enabled, networkStatus, userId]);
 
   useEffect(() => {
-    if (enabled && networkStatus === "online") {
+    if (
+      shouldStartAutoSync({
+        enabled,
+        isSyncing: isSyncingRef.current,
+        networkStatus,
+        requireWaitingOperations: false,
+        userId,
+        waitingCount: 0,
+      })
+    ) {
       void syncNow();
     }
-  }, [enabled, networkStatus, syncNow]);
+  }, [enabled, networkStatus, syncNow, userId]);
+
+  useEffect(() => {
+    if (
+      shouldStartAutoSync({
+        enabled,
+        isSyncing: isSyncingRef.current,
+        networkStatus,
+        requireWaitingOperations: true,
+        userId,
+        waitingCount,
+      })
+    ) {
+      void syncNow();
+    }
+  }, [enabled, networkStatus, syncNow, userId, waitingCount]);
+
+  useEffect(() => {
+    if (autoRetryIntervalMs <= 0) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      if (
+        shouldStartAutoSync({
+          enabled,
+          isSyncing: isSyncingRef.current,
+          networkStatus,
+          requireWaitingOperations: true,
+          userId,
+          waitingCount,
+        })
+      ) {
+        void syncNow();
+      }
+    }, autoRetryIntervalMs);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    autoRetryIntervalMs,
+    enabled,
+    networkStatus,
+    syncNow,
+    userId,
+    waitingCount,
+  ]);
 
   return {
     ...state,

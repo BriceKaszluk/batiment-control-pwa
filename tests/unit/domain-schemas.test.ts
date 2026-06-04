@@ -5,6 +5,7 @@ import {
   controlPhotoSchema,
   controlSchema,
   correctiveActionSchema,
+  organizationSchema,
 } from "@/lib/validation/schemas";
 
 const organizationId = "11111111-1111-4111-8111-111111111111";
@@ -14,6 +15,19 @@ const controlId = "44444444-4444-4444-8444-444444444444";
 const now = "2026-05-31T00:00:00.000Z";
 
 describe("domain schemas", () => {
+  it("accepts a personal user workspace", () => {
+    const result = organizationSchema.safeParse({
+      createdAt: now,
+      id: organizationId,
+      name: "Mon espace",
+      ownerId: userId,
+      updatedAt: now,
+      workspaceType: "personal",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("accepts a valid building", () => {
     const result = buildingSchema.safeParse({
       address: "12 rue du Controle",

@@ -52,6 +52,11 @@ const versionFourStores = {
     "&id, organizationId, deletedAt, updatedAt, priorityLevel, [organizationId+deletedAt], [organizationId+priorityLevel]",
 };
 
+const versionFiveStores = {
+  ...versionFourStores,
+  organizations: "&id, name, ownerId, workspaceType, updatedAt, [workspaceType+ownerId]",
+};
+
 export class BatimentControlDatabase extends Dexie {
   buildings!: Table<Building, string>;
   checklistItems!: Table<ChecklistItem, string>;
@@ -112,6 +117,23 @@ export class BatimentControlDatabase extends Dexie {
                       ? "low"
                       : "normal";
             }
+          }),
+      );
+    this.version(5)
+      .stores(versionFiveStores)
+      .upgrade((tx) =>
+        tx
+          .table("organizations")
+          .toCollection()
+          .modify((organization) => {
+            const record = organization as Record<string, unknown>;
+
+            record.ownerId =
+              typeof record.ownerId === "string" ? record.ownerId : null;
+            record.workspaceType =
+              record.workspaceType === "personal" || record.workspaceType === "team"
+                ? record.workspaceType
+                : "team";
           }),
       );
   }

@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { Suspense } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { BuildingSaveToast } from "@/features/buildings/components/building-save-toast";
 import { BuildingsListSection } from "@/features/buildings/components/buildings-list-section";
 import { getAppAuthState } from "@/features/auth/session";
 
@@ -11,6 +13,10 @@ export default async function BuildingsPage() {
 
   return (
     <div className="space-y-6">
+      <Suspense fallback={null}>
+        <BuildingSaveToast />
+      </Suspense>
+
       <PageHeader
         eyebrow="Referentiel"
         title="Batiments"

@@ -31,8 +31,8 @@ export function StartControlButton({
           setIsStarting(true);
 
           void startDraftControl({ building, userId })
-            .then(() => {
-              router.push("/controles");
+            .then((result) => {
+              router.push(`/controles/${result.record.id}`);
             })
             .catch((error: unknown) => {
               setError(

@@ -9,10 +9,16 @@ const SUPABASE_URL_ENV = "NEXT_PUBLIC_SUPABASE_URL";
 const SUPABASE_PUBLISHABLE_KEY_ENV = "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
 
 export function getSupabasePublicConfig(
-  env: RuntimeEnv = process.env,
+  env?: RuntimeEnv,
 ): SupabasePublicConfig | null {
-  const url = readEnvValue(env[SUPABASE_URL_ENV]);
-  const publishableKey = readEnvValue(env[SUPABASE_PUBLISHABLE_KEY_ENV]);
+  const url = readEnvValue(
+    env ? env[SUPABASE_URL_ENV] : process.env.NEXT_PUBLIC_SUPABASE_URL,
+  );
+  const publishableKey = readEnvValue(
+    env
+      ? env[SUPABASE_PUBLISHABLE_KEY_ENV]
+      : process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  );
 
   if (!url || !publishableKey) {
     return null;
@@ -34,7 +40,7 @@ export function requireSupabasePublicConfig(): SupabasePublicConfig {
 }
 
 export function isSupabaseConfigured(
-  env: RuntimeEnv = process.env,
+  env?: RuntimeEnv,
 ): boolean {
   return getSupabasePublicConfig(env) !== null;
 }

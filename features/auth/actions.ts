@@ -2,18 +2,9 @@
 
 import { redirect } from "next/navigation";
 
+import type { LoginFormState } from "@/features/auth/login-form-state";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-
-export type LoginFormState = {
-  message: string | null;
-  status: "idle" | "error";
-};
-
-export const initialLoginFormState: LoginFormState = {
-  message: null,
-  status: "idle",
-};
 
 export async function signInWithPassword(
   _previousState: LoginFormState,

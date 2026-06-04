@@ -37,7 +37,9 @@ const organization: Organization = {
   createdAt: older,
   id: organizationId,
   name: "Equipe Nord",
+  ownerId: userId,
   updatedAt: older,
+  workspaceType: "personal",
 };
 
 const organizationMember: OrganizationMember = {

@@ -4,6 +4,10 @@ import { liveQuery } from "dexie";
 import { useEffect, useState } from "react";
 
 import { db } from "@/lib/db/dexie";
+import {
+  listPersonalOrganizationsForUser,
+  preparePersonalWorkspaceForUser,
+} from "@/features/buildings/services/personal-workspace";
 import type { Organization } from "@/types/domain";
 
 type LocalOrganizationsState = {
@@ -18,24 +22,17 @@ export function useUserOrganizations(userId: string | null): LocalOrganizationsS
     isLoading: true,
     organizations: [],
   });
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [preparationError, setPreparationError] = useState<string | null>(null);
 
   useEffect(() => {
-    const subscription = liveQuery(async () => {
-      if (!userId) {
-        return [];
-      }
+    setPreparationError(null);
+  }, [userId]);
 
-      const members = await db.organizationMembers.where("userId").equals(userId).toArray();
-      const organizationIds = [...new Set(members.map((member) => member.organizationId))];
-
-      if (organizationIds.length === 0) {
-        return [];
-      }
-
-      const organizations = await db.organizations.bulkGet(organizationIds);
-
-      return organizations.filter((org): org is Organization => Boolean(org));
-    }).subscribe({
+  useEffect(() => {
+    const subscription = liveQuery(() =>
+      listPersonalOrganizationsForUser({ database: db, userId }),
+    ).subscribe({
       error: (error: unknown) => {
         setState({
           error: error instanceof Error ? error.message : "Erreur locale",
@@ -57,6 +54,52 @@ export function useUserOrganizations(userId: string | null): LocalOrganizationsS
     };
   }, [userId]);
 
-  return state;
-}
+  useEffect(() => {
+    if (
+      !userId ||
+      state.error ||
+      state.isLoading ||
+      state.organizations.length > 0 ||
+      isPreparing ||
+      preparationError
+    ) {
+      return;
+    }
 
+    let canceled = false;
+    setIsPreparing(true);
+
+    void preparePersonalWorkspaceForUser({ database: db, userId })
+      .catch((error: unknown) => {
+        if (canceled) {
+          return;
+        }
+
+        setPreparationError(
+          error instanceof Error ? error.message : "Preparation locale impossible",
+        );
+      })
+      .finally(() => {
+        if (!canceled) {
+          setIsPreparing(false);
+        }
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [
+    isPreparing,
+    preparationError,
+    state.error,
+    state.isLoading,
+    state.organizations.length,
+    userId,
+  ]);
+
+  return {
+    error: state.error ?? preparationError,
+    isLoading: state.isLoading || isPreparing,
+    organizations: state.organizations,
+  };
+}

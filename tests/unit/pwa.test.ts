@@ -31,4 +31,21 @@ describe("PWA foundation", () => {
     expect(serviceWorker).toContain("networkFirst(request, \"/dashboard\")");
     expect(serviceWorker).toContain("staleWhileRevalidate(request)");
   });
+
+  it("cleans stale PWA registrations and caches during development", async () => {
+    const serviceWorkerRegister = await readFile(
+      path.join(projectRoot, "components/pwa/service-worker-register.tsx"),
+      "utf8",
+    );
+
+    expect(serviceWorkerRegister).toContain(
+      "process.env.NODE_ENV !== \"production\"",
+    );
+    expect(serviceWorkerRegister).toContain(
+      "navigator.serviceWorker.getRegistrations()",
+    );
+    expect(serviceWorkerRegister).toContain(
+      'cacheName.startsWith("batiment-control-")',
+    );
+  });
 });

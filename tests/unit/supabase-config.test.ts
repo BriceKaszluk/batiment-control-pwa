@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -33,5 +35,14 @@ describe("supabase public config", () => {
       url: "https://project.supabase.co",
     });
     expect(isSupabaseConfigured(env)).toBe(true);
+  });
+
+  it("uses static public env references for the client bundle", () => {
+    const source = readFileSync("lib/supabase/config.ts", "utf8");
+
+    expect(source).toContain("process.env.NEXT_PUBLIC_SUPABASE_URL");
+    expect(source).toContain(
+      "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    );
   });
 });
