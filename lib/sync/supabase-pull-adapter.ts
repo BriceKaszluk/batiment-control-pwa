@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { createEmptyRemoteSnapshot, type RemoteSnapshot } from "@/lib/sync/remote-snapshot";
 import {
   buildingAreaSchema,
+  normalizeBuildingAreaList,
   buildingPriorityLevelSchema,
   buildingServiceDaySchema,
 } from "@/lib/validation/schemas";
@@ -112,7 +113,9 @@ export function toBuilding(row: PublicTables["buildings"]["Row"]): Building {
   return {
     address: (row.address ?? "Adresse non renseignee").trim(),
     agentStatus: row.agent_status,
-    areasToCheck: z.array(buildingAreaSchema).parse(row.areas_to_check),
+    areasToCheck: z
+      .array(buildingAreaSchema)
+      .parse(normalizeBuildingAreaList(row.areas_to_check)),
     assignedAgentName: row.assigned_agent_name,
     createdAt: row.created_at,
     createdBy: row.created_by,

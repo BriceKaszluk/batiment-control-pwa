@@ -160,7 +160,7 @@ describe("domain schemas", () => {
     const result = buildingSchema.safeParse({
       address: "12 rue du Controle",
       agentStatus: "unknown",
-      areasToCheck: ["outdoor", "entrance_hall", "trash_room"],
+      areasToCheck: ["outdoor", "hall", "common_areas", "garage"],
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
@@ -177,6 +177,60 @@ describe("domain schemas", () => {
     });
 
     expect(result.success).toBe(true);
+  });
+
+  it("normalizes legacy building areas", () => {
+    const result = buildingSchema.safeParse({
+      address: "12 rue du Controle",
+      agentStatus: "unknown",
+      areasToCheck: ["entrance_hall", "trash_room", "bike_room", "basement"],
+      assignedAgentName: null,
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: buildingId,
+      internalNotes: null,
+      lastControlAt: null,
+      name: "Batiment A",
+      organizationId,
+      priorityLevel: "high",
+      sector: "Secteur Nord",
+      serviceDays: [],
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error("Expected legacy areas to be normalized.");
+    }
+    expect(result.data.areasToCheck).toEqual([
+      "hall",
+      "common_areas",
+      "basement_access",
+    ]);
+  });
+
+  it("rejects unsupported building areas", () => {
+    const result = buildingSchema.safeParse({
+      address: "12 rue du Controle",
+      agentStatus: "unknown",
+      areasToCheck: ["local_inconnu"],
+      assignedAgentName: null,
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: buildingId,
+      internalNotes: null,
+      lastControlAt: null,
+      name: "Batiment A",
+      organizationId,
+      priorityLevel: "high",
+      sector: "Secteur Nord",
+      serviceDays: [],
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(false);
   });
 
   it("requires completed controls to have a completion date", () => {

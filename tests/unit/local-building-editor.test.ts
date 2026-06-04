@@ -68,7 +68,7 @@ describe("local building editor", () => {
       input: {
         address: "12 rue du Controle",
         agentStatus: "unknown",
-        areasToCheck: ["outdoor", "entrance_hall"],
+        areasToCheck: ["outdoor", "hall"],
         assignedAgentName: null,
         internalNotes: "Attention local poubelle",
         name: "Batiment A",
@@ -131,7 +131,7 @@ describe("local building editor", () => {
       input: {
         address: "12 rue du Controle",
         agentStatus: "present",
-        areasToCheck: ["trash_room"],
+        areasToCheck: ["common_areas"],
         assignedAgentName: "Agent B",
         internalNotes: null,
         name: "Batiment A (modifie)",
@@ -198,4 +198,3 @@ describe("local building editor", () => {
     });
   });
 });
-

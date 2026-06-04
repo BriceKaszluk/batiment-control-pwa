@@ -55,7 +55,7 @@ describe("Supabase pull adapter", () => {
   it("maps remote buildings to local domain records", () => {
     const row: PublicTables["buildings"]["Row"] = {
       agent_status: "unknown",
-      areas_to_check: [],
+      areas_to_check: ["entrance_hall", "trash_room", "basement"],
       assigned_agent_name: null,
       access_notes: null,
       address: "12 rue du Controle",
@@ -77,7 +77,7 @@ describe("Supabase pull adapter", () => {
     expect(toBuilding(row)).toMatchObject({
       address: "12 rue du Controle",
       agentStatus: "unknown",
-      areasToCheck: [],
+      areasToCheck: ["hall", "common_areas", "basement_access"],
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,

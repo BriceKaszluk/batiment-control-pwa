@@ -46,13 +46,13 @@ export const weekDays = [
 ] as const;
 export const buildingAreas = [
   "outdoor",
-  "entrance_hall",
-  "floor_landings",
-  "stairs",
+  "hall",
   "elevator",
-  "bike_room",
-  "basement",
-  "trash_room",
+  "stairs",
+  "floor_landings",
+  "basement_access",
+  "common_areas",
+  "garage",
 ] as const;
 export const serviceTasks = [
   "outdoor",
@@ -83,6 +83,29 @@ export const weekDaySchema = z.enum(weekDays);
 export const buildingAreaSchema = z.enum(buildingAreas);
 export const serviceTaskSchema = z.enum(serviceTasks);
 export const photoMimeTypeSchema = z.enum(photoMimeTypes);
+
+const legacyBuildingAreaMap: Record<string, (typeof buildingAreas)[number]> = {
+  basement: "basement_access",
+  bike_room: "common_areas",
+  entrance_hall: "hall",
+  trash_room: "common_areas",
+};
+
+export function normalizeBuildingAreaList(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return value;
+  }
+
+  const normalizedAreas = value.map((area) =>
+    typeof area === "string" ? legacyBuildingAreaMap[area] ?? area : area,
+  );
+
+  return [...new Set(normalizedAreas)];
+}
+
+const buildingAreasToCheckSchema = z
+  .preprocess(normalizeBuildingAreaList, z.array(buildingAreaSchema))
+  .default([]);
 
 const uuidSchema = z.string().uuid();
 const isoDateTimeSchema = z.string().datetime({ offset: true });
@@ -129,7 +152,7 @@ export const buildingSchema = z
   .object({
     address: z.string().trim().min(1).max(240),
     agentStatus: agentStatusSchema.default("unknown"),
-    areasToCheck: z.array(buildingAreaSchema).default([]),
+    areasToCheck: buildingAreasToCheckSchema,
     assignedAgentName: nullableText(160).default(null),
     createdAt: isoDateTimeSchema,
     createdBy: uuidSchema,
@@ -276,7 +299,7 @@ export const buildingCreateSchema = z
   .object({
     address: buildingSchema.shape.address,
     agentStatus: agentStatusSchema.default("unknown"),
-    areasToCheck: z.array(buildingAreaSchema).default([]),
+    areasToCheck: buildingAreasToCheckSchema,
     assignedAgentName: nullableText(160).optional().default(null),
     internalNotes: nullableText(3000).optional().default(null),
     name: buildingSchema.shape.name,

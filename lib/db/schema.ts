@@ -14,6 +14,7 @@ import type {
   PhotoUpload,
 } from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
+import { normalizeBuildingAreaList } from "@/lib/validation/schemas";
 
 export const localDatabaseName = "batiment-control-local";
 
@@ -55,6 +56,10 @@ const versionFourStores = {
 const versionFiveStores = {
   ...versionFourStores,
   organizations: "&id, name, ownerId, workspaceType, updatedAt, [workspaceType+ownerId]",
+};
+
+const versionSixStores = {
+  ...versionFiveStores,
 };
 
 export class BatimentControlDatabase extends Dexie {
@@ -134,6 +139,20 @@ export class BatimentControlDatabase extends Dexie {
               record.workspaceType === "personal" || record.workspaceType === "team"
                 ? record.workspaceType
                 : "team";
+          }),
+      );
+    this.version(6)
+      .stores(versionSixStores)
+      .upgrade((tx) =>
+        tx
+          .table("buildings")
+          .toCollection()
+          .modify((building) => {
+            const record = building as Record<string, unknown>;
+
+            record.areasToCheck = normalizeBuildingAreaList(
+              record.areasToCheck,
+            );
           }),
       );
   }

@@ -74,14 +74,14 @@ const taskLabels: Record<(typeof serviceTasks)[number], string> = {
 };
 
 const areaLabels: Record<(typeof buildingAreas)[number], string> = {
-  basement: "Cave",
-  bike_room: "Local velo",
   elevator: "Ascenseur",
-  entrance_hall: "Hall / entree",
-  floor_landings: "Paliers etage",
+  basement_access: "Acces circulation caves",
+  common_areas: "Locaux communs",
+  floor_landings: "Palier d'etages",
+  garage: "Garage",
+  hall: "Hall",
   outdoor: "Abords",
-  stairs: "Escaliers",
-  trash_room: "Local poubelle",
+  stairs: "Montee escalier",
 };
 
 export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormProps>) {
