@@ -8,7 +8,7 @@ import { ControlCommentEditor } from "@/features/controls/components/control-com
 import { ControlCorrectiveActionsSection } from "@/features/controls/components/control-corrective-actions-section";
 import { ControlPhotosSection } from "@/features/controls/components/control-photos-section";
 import { useLocalControlDetail } from "@/features/controls/hooks/use-local-control-detail";
-import { getControlStatusLabel } from "@/features/controls/services/local-controls";
+import { getControlStatusLabel } from "@/features/controls/services/control-labels";
 
 type ControlDetailSectionProps = {
   controlId: string;

@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   getPhotoUploadStatusLabel,
   maxLocalPhotoSizeBytes,
-  saveControlPhoto,
-} from "@/features/controls/services/local-control-photos";
+} from "@/features/controls/services/control-labels";
 import type { ControlPhoto } from "@/types/domain";
 
 type ControlPhotosSectionProps = {
@@ -48,13 +47,16 @@ export function ControlPhotosSection({
           setError(null);
           setIsSaving(true);
 
-          void saveControlPhoto({
-            blob: selectedFile,
-            caption,
-            controlId,
-            fileName: selectedFile.name,
-            userId,
-          })
+          void import("@/features/controls/services/local-control-photos")
+            .then((localControlPhotosModule) =>
+              localControlPhotosModule.saveControlPhoto({
+                blob: selectedFile,
+                caption,
+                controlId,
+                fileName: selectedFile.name,
+                userId,
+              }),
+            )
             .then(() => {
               setCaption("");
               setSelectedFile(null);

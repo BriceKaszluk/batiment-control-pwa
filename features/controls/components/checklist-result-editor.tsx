@@ -4,11 +4,8 @@ import { Check, Loader2, MinusCircle, Save, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  getChecklistResultStatusLabel,
-  saveChecklistResult,
-  type LocalChecklistEntry,
-} from "@/features/controls/services/local-control-detail";
+import { getChecklistResultStatusLabel } from "@/features/controls/services/control-labels";
+import type { LocalChecklistEntry } from "@/features/controls/services/local-control-detail";
 import type { ChecklistResult } from "@/types/domain";
 
 const statusOptions: Array<{
@@ -79,13 +76,16 @@ export function ChecklistResultEditor({
                 setError(null);
                 setSavingStatus(option.status);
 
-                void saveChecklistResult({
-                  checklistItemId: entry.item.id,
-                  comment,
-                  controlId,
-                  status: option.status,
-                  userId,
-                })
+                void import("@/features/controls/services/local-control-detail")
+                  .then((localControlDetailModule) =>
+                    localControlDetailModule.saveChecklistResult({
+                      checklistItemId: entry.item.id,
+                      comment,
+                      controlId,
+                      status: option.status,
+                      userId,
+                    }),
+                  )
                   .catch((error: unknown) => {
                     setError(
                       error instanceof Error
@@ -141,13 +141,16 @@ export function ChecklistResultEditor({
           setError(null);
           setIsSavingComment(true);
 
-          void saveChecklistResult({
-            checklistItemId: entry.item.id,
-            comment,
-            controlId,
-            status: selectedStatus,
-            userId,
-          })
+          void import("@/features/controls/services/local-control-detail")
+            .then((localControlDetailModule) =>
+              localControlDetailModule.saveChecklistResult({
+                checklistItemId: entry.item.id,
+                comment,
+                controlId,
+                status: selectedStatus,
+                userId,
+              }),
+            )
             .catch((error: unknown) => {
               setError(
                 error instanceof Error

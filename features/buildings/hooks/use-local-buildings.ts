@@ -1,18 +1,18 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useEffect, useState } from "react";
 
-import {
-  listBuildingsForUser,
-  type ListBuildingsForUserOptions,
-} from "@/features/buildings/services/local-buildings";
+import type { ListBuildingsForUserOptions } from "@/features/buildings/services/local-buildings";
 import type { Building } from "@/types/domain";
 
 type LocalBuildingsState = {
   buildings: Building[];
   error: string | null;
   isLoading: boolean;
+};
+
+type LiveQuerySubscription = {
+  unsubscribe: () => void;
 };
 
 type UseLocalBuildingsOptions = Pick<
@@ -31,27 +31,60 @@ export function useLocalBuildings({
   });
 
   useEffect(() => {
-    const subscription = liveQuery(() =>
-      listBuildingsForUser({ limit, userId }),
-    ).subscribe({
-      error: (error: unknown) => {
+    let isCanceled = false;
+    let subscription: LiveQuerySubscription | null = null;
+
+    setState((currentState) => ({
+      ...currentState,
+      error: null,
+      isLoading: true,
+    }));
+
+    void Promise.all([
+      import("dexie"),
+      import("@/features/buildings/services/local-buildings"),
+    ])
+      .then(([dexieModule, localBuildingsModule]) => {
+        if (isCanceled) {
+          return;
+        }
+
+        subscription = dexieModule
+          .liveQuery(() =>
+            localBuildingsModule.listBuildingsForUser({ limit, userId }),
+          )
+          .subscribe({
+            error: (error: unknown) => {
+              setState({
+                buildings: [],
+                error: error instanceof Error ? error.message : "Erreur locale",
+                isLoading: false,
+              });
+            },
+            next: (buildings) => {
+              setState({
+                buildings,
+                error: null,
+                isLoading: false,
+              });
+            },
+          });
+      })
+      .catch((error: unknown) => {
+        if (isCanceled) {
+          return;
+        }
+
         setState({
           buildings: [],
           error: error instanceof Error ? error.message : "Erreur locale",
           isLoading: false,
         });
-      },
-      next: (buildings) => {
-        setState({
-          buildings,
-          error: null,
-          isLoading: false,
-        });
-      },
-    });
+      });
 
     return () => {
-      subscription.unsubscribe();
+      isCanceled = true;
+      subscription?.unsubscribe();
     };
   }, [limit, userId]);
 

@@ -1,19 +1,17 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useEffect, useState } from "react";
 
-import { db } from "@/lib/db/dexie";
-import {
-  listPersonalOrganizationsForUser,
-  preparePersonalWorkspaceForUser,
-} from "@/features/buildings/services/personal-workspace";
 import type { Organization } from "@/types/domain";
 
 type LocalOrganizationsState = {
   error: string | null;
   isLoading: boolean;
   organizations: Organization[];
+};
+
+type LiveQuerySubscription = {
+  unsubscribe: () => void;
 };
 
 export function useUserOrganizations(userId: string | null): LocalOrganizationsState {
@@ -30,27 +28,64 @@ export function useUserOrganizations(userId: string | null): LocalOrganizationsS
   }, [userId]);
 
   useEffect(() => {
-    const subscription = liveQuery(() =>
-      listPersonalOrganizationsForUser({ database: db, userId }),
-    ).subscribe({
-      error: (error: unknown) => {
+    let isCanceled = false;
+    let subscription: LiveQuerySubscription | null = null;
+
+    setState((currentState) => ({
+      ...currentState,
+      error: null,
+      isLoading: true,
+    }));
+
+    void Promise.all([
+      import("dexie"),
+      import("@/lib/db/dexie"),
+      import("@/features/buildings/services/personal-workspace"),
+    ])
+      .then(([dexieModule, databaseModule, personalWorkspaceModule]) => {
+        if (isCanceled) {
+          return;
+        }
+
+        subscription = dexieModule
+          .liveQuery(() =>
+            personalWorkspaceModule.listPersonalOrganizationsForUser({
+              database: databaseModule.db,
+              userId,
+            }),
+          )
+          .subscribe({
+            error: (error: unknown) => {
+              setState({
+                error: error instanceof Error ? error.message : "Erreur locale",
+                isLoading: false,
+                organizations: [],
+              });
+            },
+            next: (organizations) => {
+              setState({
+                error: null,
+                isLoading: false,
+                organizations,
+              });
+            },
+          });
+      })
+      .catch((error: unknown) => {
+        if (isCanceled) {
+          return;
+        }
+
         setState({
           error: error instanceof Error ? error.message : "Erreur locale",
           isLoading: false,
           organizations: [],
         });
-      },
-      next: (organizations) => {
-        setState({
-          error: null,
-          isLoading: false,
-          organizations,
-        });
-      },
-    });
+      });
 
     return () => {
-      subscription.unsubscribe();
+      isCanceled = true;
+      subscription?.unsubscribe();
     };
   }, [userId]);
 
@@ -69,7 +104,16 @@ export function useUserOrganizations(userId: string | null): LocalOrganizationsS
     let canceled = false;
     setIsPreparing(true);
 
-    void preparePersonalWorkspaceForUser({ database: db, userId })
+    void Promise.all([
+      import("@/lib/db/dexie"),
+      import("@/features/buildings/services/personal-workspace"),
+    ])
+      .then(([databaseModule, personalWorkspaceModule]) =>
+        personalWorkspaceModule.preparePersonalWorkspaceForUser({
+          database: databaseModule.db,
+          userId,
+        }),
+      )
       .catch((error: unknown) => {
         if (canceled) {
           return;

@@ -6,20 +6,14 @@ import { useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
 
 import { Button } from "@/components/ui/button";
-import {
-  createBuilding,
-  deleteBuilding,
-  updateBuilding,
-} from "@/features/buildings/services/local-building-editor";
 import { useUserOrganizations } from "@/features/buildings/hooks/use-user-organizations";
 import {
   agentStatuses,
   buildingAreas,
-  buildingCreateSchema,
   buildingPriorityLevels,
   serviceTasks,
   weekDays,
-} from "@/lib/validation/schemas";
+} from "@/lib/domain/options";
 import type { Building, BuildingCreateInput } from "@/types/domain";
 
 type BuildingFormMode = "create" | "edit";
@@ -529,15 +523,6 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
               })),
             };
 
-            const parsed = buildingCreateSchema.safeParse(input);
-
-            if (!parsed.success) {
-              const { fieldErrors, formError } = collectFieldErrors(parsed.error);
-              setFieldErrors(fieldErrors);
-              setFormError(formError ?? "Champs invalides.");
-              return;
-            }
-
             if (!userId) {
               setFormError("Utilisateur requis.");
               return;
@@ -550,20 +535,40 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
             setIsSaving(true);
 
-            const operation = isEdit
-              ? updateBuilding({
-                  buildingId: building?.id ?? "",
-                  input: parsed.data,
-                  userId,
-                })
-              : createBuilding({
-                  input: parsed.data,
-                  organizationId,
-                  userId,
-                });
+            void Promise.all([
+              import("@/lib/validation/schemas"),
+              import("@/features/buildings/services/local-building-editor"),
+            ])
+              .then(([validationModule, localBuildingEditorModule]) => {
+                const parsed =
+                  validationModule.buildingCreateSchema.safeParse(input);
 
-            void operation
-              .then(() => {
+                if (!parsed.success) {
+                  const { fieldErrors, formError } = collectFieldErrors(
+                    parsed.error,
+                  );
+                  setFieldErrors(fieldErrors);
+                  setFormError(formError ?? "Champs invalides.");
+                  return null;
+                }
+
+                return isEdit
+                  ? localBuildingEditorModule.updateBuilding({
+                      buildingId: building?.id ?? "",
+                      input: parsed.data,
+                      userId,
+                    })
+                  : localBuildingEditorModule.createBuilding({
+                      input: parsed.data,
+                      organizationId,
+                      userId,
+                    });
+              })
+              .then((result) => {
+                if (result === null) {
+                  return;
+                }
+
                 router.push(
                   isEdit
                     ? "/batiments?notice=batiment-enregistre"
@@ -611,7 +616,13 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
               setIsDeleting(true);
 
-              void deleteBuilding({ buildingId: building.id, userId })
+              void import("@/features/buildings/services/local-building-editor")
+                .then((localBuildingEditorModule) =>
+                  localBuildingEditorModule.deleteBuilding({
+                    buildingId: building.id,
+                    userId,
+                  }),
+                )
                 .then(() => {
                   router.push("/batiments?notice=batiment-supprime");
                 })

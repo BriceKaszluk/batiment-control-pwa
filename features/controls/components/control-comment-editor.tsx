@@ -4,7 +4,6 @@ import { Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { saveControlComment } from "@/features/controls/services/local-control-detail";
 import type { Control } from "@/types/domain";
 
 type ControlCommentEditorProps = {
@@ -52,11 +51,14 @@ export function ControlCommentEditor({
           setError(null);
           setIsSaving(true);
 
-          void saveControlComment({
-            comment,
-            controlId: control.id,
-            userId,
-          })
+          void import("@/features/controls/services/local-control-detail")
+            .then((localControlDetailModule) =>
+              localControlDetailModule.saveControlComment({
+                comment,
+                controlId: control.id,
+                userId,
+              }),
+            )
             .catch((error: unknown) => {
               setError(
                 error instanceof Error

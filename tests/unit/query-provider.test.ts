@@ -18,19 +18,23 @@ describe("TanStack Query provider", () => {
     expect(packageJson.dependencies).toHaveProperty("@tanstack/react-query");
   });
 
-  it("wraps the app shell with conservative query defaults", async () => {
+  it("keeps conservative query defaults ready for future remote query screens", async () => {
     const provider = await readFile(
       path.join(projectRoot, "components", "providers", "query-provider.tsx"),
-      "utf8",
-    );
-    const rootLayout = await readFile(
-      path.join(projectRoot, "app", "layout.tsx"),
       "utf8",
     );
 
     expect(provider).toContain("QueryClientProvider");
     expect(provider).toContain("refetchOnReconnect: true");
     expect(provider).toContain("refetchOnWindowFocus: false");
-    expect(rootLayout).toContain("<QueryProvider>{children}</QueryProvider>");
+  });
+
+  it("does not mount TanStack Query globally before query screens need it", async () => {
+    const rootLayout = await readFile(
+      path.join(projectRoot, "app", "layout.tsx"),
+      "utf8",
+    );
+
+    expect(rootLayout).not.toContain("QueryProvider");
   });
 });

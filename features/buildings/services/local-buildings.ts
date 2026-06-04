@@ -4,7 +4,11 @@ import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import type { Building, Organization } from "@/types/domain";
 
-export type BuildingPriorityTone = "critical" | "high" | "low" | "normal";
+export {
+  getBuildingPriorityLabel,
+  getBuildingPriorityTone,
+  type BuildingPriorityTone,
+} from "@/features/buildings/services/building-labels";
 
 export type ListBuildingsForUserOptions = {
   database?: BatimentControlDatabase;
@@ -79,30 +83,6 @@ export function compareBuildingsByFieldPriority(
   }
 
   return firstBuilding.name.localeCompare(secondBuilding.name, "fr");
-}
-
-export function getBuildingPriorityTone(
-  priorityLevel: Building["priorityLevel"],
-): BuildingPriorityTone {
-  return priorityLevel;
-}
-
-export function getBuildingPriorityLabel(priorityLevel: Building["priorityLevel"]) {
-  const tone = getBuildingPriorityTone(priorityLevel);
-
-  if (tone === "critical") {
-    return "Priorite critique";
-  }
-
-  if (tone === "high") {
-    return "Priorite haute";
-  }
-
-  if (tone === "low") {
-    return "Priorite basse";
-  }
-
-  return "Priorite normale";
 }
 
 function toLastControlRank(lastControlAt: string | null) {

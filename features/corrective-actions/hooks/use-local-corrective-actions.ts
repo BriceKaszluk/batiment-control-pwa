@@ -1,18 +1,20 @@
 "use client";
 
-import { liveQuery } from "dexie";
 import { useEffect, useState } from "react";
 
-import {
-  listCorrectiveActionsForUser,
-  type ListCorrectiveActionsForUserOptions,
-  type LocalCorrectiveActionSummary,
+import type {
+  ListCorrectiveActionsForUserOptions,
+  LocalCorrectiveActionSummary,
 } from "@/features/corrective-actions/services/local-corrective-actions";
 
 type LocalCorrectiveActionsState = {
   actions: LocalCorrectiveActionSummary[];
   error: string | null;
   isLoading: boolean;
+};
+
+type LiveQuerySubscription = {
+  unsubscribe: () => void;
 };
 
 type UseLocalCorrectiveActionsOptions = Pick<
@@ -31,27 +33,63 @@ export function useLocalCorrectiveActions({
   });
 
   useEffect(() => {
-    const subscription = liveQuery(() =>
-      listCorrectiveActionsForUser({ includeClosed, userId }),
-    ).subscribe({
-      error: (error: unknown) => {
+    let isCanceled = false;
+    let subscription: LiveQuerySubscription | null = null;
+
+    setState((currentState) => ({
+      ...currentState,
+      error: null,
+      isLoading: true,
+    }));
+
+    void Promise.all([
+      import("dexie"),
+      import("@/features/corrective-actions/services/local-corrective-actions"),
+    ])
+      .then(([dexieModule, localCorrectiveActionsModule]) => {
+        if (isCanceled) {
+          return;
+        }
+
+        subscription = dexieModule
+          .liveQuery(() =>
+            localCorrectiveActionsModule.listCorrectiveActionsForUser({
+              includeClosed,
+              userId,
+            }),
+          )
+          .subscribe({
+            error: (error: unknown) => {
+              setState({
+                actions: [],
+                error: error instanceof Error ? error.message : "Erreur locale",
+                isLoading: false,
+              });
+            },
+            next: (actions) => {
+              setState({
+                actions,
+                error: null,
+                isLoading: false,
+              });
+            },
+          });
+      })
+      .catch((error: unknown) => {
+        if (isCanceled) {
+          return;
+        }
+
         setState({
           actions: [],
           error: error instanceof Error ? error.message : "Erreur locale",
           isLoading: false,
         });
-      },
-      next: (actions) => {
-        setState({
-          actions,
-          error: null,
-          isLoading: false,
-        });
-      },
-    });
+      });
 
     return () => {
-      subscription.unsubscribe();
+      isCanceled = true;
+      subscription?.unsubscribe();
     };
   }, [includeClosed, userId]);
 

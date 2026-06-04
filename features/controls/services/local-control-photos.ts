@@ -1,5 +1,6 @@
 "use client";
 
+import { maxLocalPhotoSizeBytes } from "@/features/controls/services/control-labels";
 import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import {
@@ -9,7 +10,10 @@ import {
 } from "@/lib/validation/schemas";
 import type { ControlPhoto, PhotoUpload } from "@/types/domain";
 
-export const maxLocalPhotoSizeBytes = 8 * 1024 * 1024;
+export {
+  getPhotoUploadStatusLabel,
+  maxLocalPhotoSizeBytes,
+} from "@/features/controls/services/control-labels";
 
 export type LocalPhotoMutationResult = {
   photo: ControlPhoto;
@@ -123,22 +127,6 @@ export async function saveControlPhoto({
 
 export function buildPhotoUploadIdempotencyKey(photoId: string) {
   return `controlPhotos:${photoId}:upload`;
-}
-
-export function getPhotoUploadStatusLabel(status: PhotoUpload["status"]) {
-  if (status === "processing") {
-    return "Upload en cours";
-  }
-
-  if (status === "synced") {
-    return "Upload termine";
-  }
-
-  if (status === "error") {
-    return "Erreur upload";
-  }
-
-  return "Upload en attente";
 }
 
 export function isAllowedPhotoMimeType(mimeType: string): boolean {

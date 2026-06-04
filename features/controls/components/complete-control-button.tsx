@@ -4,7 +4,6 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { completeControl } from "@/features/controls/services/local-controls";
 import type { Control } from "@/types/domain";
 
 type CompleteControlButtonProps = {
@@ -29,10 +28,13 @@ export function CompleteControlButton({
           setError(null);
           setIsSaving(true);
 
-          void completeControl({
-            controlId: control.id,
-            userId,
-          })
+          void import("@/features/controls/services/local-controls")
+            .then((localControlsModule) =>
+              localControlsModule.completeControl({
+                controlId: control.id,
+                userId,
+              }),
+            )
             .catch((error: unknown) => {
               setError(
                 error instanceof Error ? error.message : "Controle non termine",

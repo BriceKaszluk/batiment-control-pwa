@@ -9,6 +9,8 @@ import { buildingSchema, controlSchema } from "@/lib/validation/schemas";
 import type { Building, Control } from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
 
+export { getControlStatusLabel } from "@/features/controls/services/control-labels";
+
 export type LocalControlSummary = {
   building: Building | undefined;
   control: Control;
@@ -311,18 +313,6 @@ export async function listControlHistoryForUser({
         .count(),
     })),
   );
-}
-
-export function getControlStatusLabel(status: Control["status"]) {
-  if (status === "completed") {
-    return "Termine";
-  }
-
-  if (status === "canceled") {
-    return "Annule";
-  }
-
-  return "Brouillon";
 }
 
 function compareControlsByStartedAt(firstControl: Control, secondControl: Control) {

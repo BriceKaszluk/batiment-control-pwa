@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { CorrectiveActionListItem } from "@/features/corrective-actions/components/corrective-action-list-item";
-import { createCorrectiveActionForControl } from "@/features/corrective-actions/services/local-corrective-actions";
 import type { CorrectiveAction } from "@/types/domain";
 
 const priorityOptions: Array<{
@@ -55,14 +54,19 @@ export function ControlCorrectiveActionsSection({
           setError(null);
           setIsSaving(true);
 
-          void createCorrectiveActionForControl({
-            controlId,
-            description,
-            dueDate,
-            priority,
-            title,
-            userId,
-          })
+          void import(
+            "@/features/corrective-actions/services/local-corrective-actions"
+          )
+            .then((localCorrectiveActionsModule) =>
+              localCorrectiveActionsModule.createCorrectiveActionForControl({
+                controlId,
+                description,
+                dueDate,
+                priority,
+                title,
+                userId,
+              }),
+            )
             .then(() => {
               setDescription("");
               setDueDate("");

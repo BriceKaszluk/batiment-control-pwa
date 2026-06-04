@@ -2,10 +2,8 @@ import { Building2, ClipboardCheck, Clock3 } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import {
-  getControlStatusLabel,
-  type LocalControlSummary,
-} from "@/features/controls/services/local-controls";
+import { getControlStatusLabel } from "@/features/controls/services/control-labels";
+import type { LocalControlSummary } from "@/features/controls/services/local-controls";
 
 type ControlListItemProps = {
   summary: LocalControlSummary;

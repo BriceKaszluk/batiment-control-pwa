@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { startDraftControl } from "@/features/controls/services/local-controls";
 import type { Building } from "@/types/domain";
 
 type StartControlButtonProps = {
@@ -30,7 +29,10 @@ export function StartControlButton({
           setError(null);
           setIsStarting(true);
 
-          void startDraftControl({ building, userId })
+          void import("@/features/controls/services/local-controls")
+            .then((localControlsModule) =>
+              localControlsModule.startDraftControl({ building, userId }),
+            )
             .then((result) => {
               router.push(`/controles/${result.record.id}`);
             })

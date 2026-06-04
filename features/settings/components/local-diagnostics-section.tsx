@@ -16,7 +16,7 @@ import { useLocalDiagnostics } from "@/features/settings/hooks/use-local-diagnos
 import {
   getPendingSyncCount,
   getSyncErrorCount,
-} from "@/features/settings/services/local-diagnostics";
+} from "@/features/settings/services/diagnostic-summary";
 import type { OutboxStatusSummary } from "@/types/sync";
 
 type MetricTone = "error" | "neutral" | "ok" | "pending";

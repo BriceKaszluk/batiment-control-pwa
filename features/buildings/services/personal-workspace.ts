@@ -2,12 +2,7 @@
 
 import { db } from "@/lib/db/dexie";
 import type { BatimentControlDatabase } from "@/lib/db/schema";
-import { createClient } from "@/lib/supabase/client";
-import {
-  createSupabaseRemotePullAdapter,
-  type RemotePullAdapter,
-} from "@/lib/sync/supabase-pull-adapter";
-import { saveRemoteSnapshot } from "@/lib/sync/remote-snapshot";
+import type { RemotePullAdapter } from "@/lib/sync/supabase-pull-adapter";
 import type { Organization } from "@/types/domain";
 
 type ListPersonalOrganizationsOptions = {
@@ -59,7 +54,7 @@ export async function preparePersonalWorkspaceForUser({
   database = db,
   isOnline = () =>
     typeof navigator === "undefined" ? true : navigator.onLine,
-  remote = createSupabaseRemotePullAdapter(createClient()),
+  remote,
   userId,
 }: PreparePersonalWorkspaceOptions): Promise<Organization[]> {
   const existingOrganizations = await listPersonalOrganizationsForUser({
@@ -81,7 +76,11 @@ export async function preparePersonalWorkspaceForUser({
     );
   }
 
-  const remoteSnapshot = await remote.pullForUser(userId);
+  const [remoteAdapter, { saveRemoteSnapshot }] = await Promise.all([
+    remote ? Promise.resolve(remote) : createDefaultRemotePullAdapter(),
+    import("@/lib/sync/remote-snapshot"),
+  ]);
+  const remoteSnapshot = await remoteAdapter.pullForUser(userId);
   await saveRemoteSnapshot(remoteSnapshot, database);
 
   const preparedOrganizations = await listPersonalOrganizationsForUser({
@@ -94,4 +93,15 @@ export async function preparePersonalWorkspaceForUser({
   }
 
   return preparedOrganizations;
+}
+
+async function createDefaultRemotePullAdapter(): Promise<RemotePullAdapter> {
+  const [supabaseClientModule, remotePullAdapterModule] = await Promise.all([
+    import("@/lib/supabase/client"),
+    import("@/lib/sync/supabase-pull-adapter"),
+  ]);
+
+  return remotePullAdapterModule.createSupabaseRemotePullAdapter(
+    supabaseClientModule.createClient(),
+  );
 }

@@ -14,6 +14,8 @@ import type {
 } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
 
+export { getChecklistResultStatusLabel } from "@/features/controls/services/control-labels";
+
 export type LocalChecklistEntry = {
   item: ChecklistItem;
   result: ChecklistResult | undefined;
@@ -236,20 +238,6 @@ export async function saveChecklistResult({
     schema: checklistResultSchema,
     table: database.checklistResults,
   });
-}
-
-export function getChecklistResultStatusLabel(
-  status: ChecklistResult["status"],
-) {
-  if (status === "compliant") {
-    return "Conforme";
-  }
-
-  if (status === "non_compliant") {
-    return "Non conforme";
-  }
-
-  return "Non applicable";
 }
 
 function compareChecklistItems(

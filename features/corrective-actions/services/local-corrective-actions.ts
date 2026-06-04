@@ -7,6 +7,11 @@ import { correctiveActionSchema } from "@/lib/validation/schemas";
 import type { Building, CorrectiveAction } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
 
+export {
+  getCorrectiveActionPriorityLabel,
+  getCorrectiveActionStatusLabel,
+} from "@/features/corrective-actions/services/corrective-action-labels";
+
 export type LocalCorrectiveActionSummary = {
   action: CorrectiveAction;
   building: Building | undefined;
@@ -195,38 +200,6 @@ export async function updateCorrectiveActionStatus({
     schema: correctiveActionSchema,
     table: database.correctiveActions,
   });
-}
-
-export function getCorrectiveActionPriorityLabel(
-  priority: CorrectiveAction["priority"],
-) {
-  if (priority === "high") {
-    return "Haute";
-  }
-
-  if (priority === "low") {
-    return "Basse";
-  }
-
-  return "Normale";
-}
-
-export function getCorrectiveActionStatusLabel(
-  status: CorrectiveAction["status"],
-) {
-  if (status === "in_progress") {
-    return "En cours";
-  }
-
-  if (status === "done") {
-    return "Terminee";
-  }
-
-  if (status === "canceled") {
-    return "Annulee";
-  }
-
-  return "Ouverte";
 }
 
 function compareCorrectiveActions(

@@ -4,19 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { NetworkStatus } from "@/features/sync/hooks/use-network-status";
 import { shouldStartAutoSync } from "@/features/sync/services/auto-sync";
-import { createClient } from "@/lib/supabase/client";
-import {
-  createPhotoUploadSyncEngine,
-  mergeSyncResults,
-} from "@/lib/sync/photo-upload-engine";
-import { createSupabaseRemotePullAdapter } from "@/lib/sync/supabase-pull-adapter";
-import { createSupabaseRemoteSyncAdapter } from "@/lib/sync/supabase-adapter";
-import { createSupabasePhotoUploadAdapter } from "@/lib/sync/supabase-photo-upload-adapter";
-import { saveRemoteSnapshot } from "@/lib/sync/remote-snapshot";
-import {
-  createSyncEngine,
-  type SyncEngineResult,
-} from "@/lib/sync/sync-engine";
+import type { SyncEngineResult } from "@/lib/sync/sync-engine";
 
 type UseOutboxSyncOptions = {
   autoRetryIntervalMs?: number;
@@ -64,10 +52,19 @@ export function useOutboxSync({
     }));
 
     try {
+      const {
+        createClient,
+        createPhotoUploadSyncEngine,
+        createSupabasePhotoUploadAdapter,
+        createSupabaseRemotePullAdapter,
+        createSupabaseRemoteSyncAdapter,
+        createSyncEngine,
+        mergeSyncResults,
+        saveRemoteSnapshot,
+      } = await loadSyncRuntime();
       const client = createClient();
-      const remoteSnapshot = await createSupabaseRemotePullAdapter(
-        client,
-      ).pullForUser(userId);
+      const remoteSnapshot =
+        await createSupabaseRemotePullAdapter(client).pullForUser(userId);
       await saveRemoteSnapshot(remoteSnapshot);
 
       const engine = createSyncEngine({
@@ -169,5 +166,50 @@ export function useOutboxSync({
   return {
     ...state,
     syncNow,
+  };
+}
+
+type SyncRuntime = Awaited<ReturnType<typeof loadSyncRuntimeInternal>>;
+
+let syncRuntimePromise: Promise<SyncRuntime> | null = null;
+
+function loadSyncRuntime(): Promise<SyncRuntime> {
+  syncRuntimePromise ??= loadSyncRuntimeInternal();
+
+  return syncRuntimePromise;
+}
+
+async function loadSyncRuntimeInternal() {
+  const [
+    supabaseClientModule,
+    photoUploadEngineModule,
+    remotePullAdapterModule,
+    remoteSyncAdapterModule,
+    photoUploadAdapterModule,
+    remoteSnapshotModule,
+    syncEngineModule,
+  ] = await Promise.all([
+    import("@/lib/supabase/client"),
+    import("@/lib/sync/photo-upload-engine"),
+    import("@/lib/sync/supabase-pull-adapter"),
+    import("@/lib/sync/supabase-adapter"),
+    import("@/lib/sync/supabase-photo-upload-adapter"),
+    import("@/lib/sync/remote-snapshot"),
+    import("@/lib/sync/sync-engine"),
+  ]);
+
+  return {
+    createClient: supabaseClientModule.createClient,
+    createPhotoUploadSyncEngine:
+      photoUploadEngineModule.createPhotoUploadSyncEngine,
+    createSupabasePhotoUploadAdapter:
+      photoUploadAdapterModule.createSupabasePhotoUploadAdapter,
+    createSupabaseRemotePullAdapter:
+      remotePullAdapterModule.createSupabaseRemotePullAdapter,
+    createSupabaseRemoteSyncAdapter:
+      remoteSyncAdapterModule.createSupabaseRemoteSyncAdapter,
+    createSyncEngine: syncEngineModule.createSyncEngine,
+    mergeSyncResults: photoUploadEngineModule.mergeSyncResults,
+    saveRemoteSnapshot: remoteSnapshotModule.saveRemoteSnapshot,
   };
 }

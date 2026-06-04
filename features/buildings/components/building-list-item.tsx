@@ -5,7 +5,7 @@ import {
   getBuildingPriorityLabel,
   getBuildingPriorityTone,
   type BuildingPriorityTone,
-} from "@/features/buildings/services/local-buildings";
+} from "@/features/buildings/services/building-labels";
 import { StartControlButton } from "@/features/controls/components/start-control-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

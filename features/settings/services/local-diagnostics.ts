@@ -6,6 +6,11 @@ import { createOutboxService } from "@/lib/sync/outbox";
 import { createPhotoUploadQueueService } from "@/lib/sync/photo-upload-queue";
 import type { OutboxStatusSummary } from "@/types/sync";
 
+export {
+  getPendingSyncCount,
+  getSyncErrorCount,
+} from "@/features/settings/services/diagnostic-summary";
+
 export type LocalDiagnostics = {
   buildingCount: number;
   completedControlCount: number;
@@ -100,19 +105,6 @@ export async function getLocalDiagnostics({
     outbox,
     photoUploads,
   };
-}
-
-export function getPendingSyncCount(diagnostics: LocalDiagnostics) {
-  return (
-    diagnostics.outbox.pending +
-    diagnostics.outbox.processing +
-    diagnostics.photoUploads.pending +
-    diagnostics.photoUploads.processing
-  );
-}
-
-export function getSyncErrorCount(diagnostics: LocalDiagnostics) {
-  return diagnostics.outbox.error + diagnostics.photoUploads.error;
 }
 
 function createEmptyDiagnostics(): LocalDiagnostics {

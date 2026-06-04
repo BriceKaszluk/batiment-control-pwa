@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   getCorrectiveActionPriorityLabel,
   getCorrectiveActionStatusLabel,
-  updateCorrectiveActionStatus,
-} from "@/features/corrective-actions/services/local-corrective-actions";
+} from "@/features/corrective-actions/services/corrective-action-labels";
 import type { CorrectiveAction } from "@/types/domain";
 
 type CorrectiveActionListItemProps = {
@@ -33,11 +32,14 @@ export function CorrectiveActionListItem({
     setError(null);
     setSavingStatus(status);
 
-    void updateCorrectiveActionStatus({
-      actionId: action.id,
-      status,
-      userId,
-    })
+    void import("@/features/corrective-actions/services/local-corrective-actions")
+      .then((localCorrectiveActionsModule) =>
+        localCorrectiveActionsModule.updateCorrectiveActionStatus({
+          actionId: action.id,
+          status,
+          userId,
+        }),
+      )
       .catch((error: unknown) => {
         setError(
           error instanceof Error ? error.message : "Reprise non enregistree",
