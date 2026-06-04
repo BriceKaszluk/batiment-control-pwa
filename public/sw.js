@@ -1,6 +1,6 @@
 /* global self, caches, clients */
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const APP_SHELL_CACHE = `batiment-control-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `batiment-control-runtime-${CACHE_VERSION}`;
 const APP_SHELL_URLS = [
@@ -8,7 +8,11 @@ const APP_SHELL_URLS = [
   "/dashboard",
   "/login",
   "/manifest.webmanifest",
+  "/apple-touch-icon.png",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
   "/icons/icon.svg",
+  "/icons/maskable-icon-512.png",
   "/icons/maskable-icon.svg",
 ];
 

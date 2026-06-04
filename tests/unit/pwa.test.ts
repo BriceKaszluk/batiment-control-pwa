@@ -9,8 +9,11 @@ const projectRoot = process.cwd();
 
 describe("PWA foundation", () => {
   it("declares an installable manifest for the field app", () => {
-    expect(manifest()).toMatchObject({
+    const appManifest = manifest();
+
+    expect(appManifest).toMatchObject({
       display: "standalone",
+      id: "/",
       name: "Batiment Control",
       orientation: "portrait",
       scope: "/",
@@ -18,6 +21,28 @@ describe("PWA foundation", () => {
       start_url: "/dashboard",
       theme_color: "#12715d",
     });
+    expect(appManifest.icons).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          purpose: "any",
+          sizes: "192x192",
+          src: "/icons/icon-192.png",
+          type: "image/png",
+        }),
+        expect.objectContaining({
+          purpose: "any",
+          sizes: "512x512",
+          src: "/icons/icon-512.png",
+          type: "image/png",
+        }),
+        expect.objectContaining({
+          purpose: "maskable",
+          sizes: "512x512",
+          src: "/icons/maskable-icon-512.png",
+          type: "image/png",
+        }),
+      ]),
+    );
   });
 
   it("keeps the service worker scoped to same-origin GET requests", async () => {
@@ -30,6 +55,10 @@ describe("PWA foundation", () => {
     expect(serviceWorker).toContain("url.origin !== self.location.origin");
     expect(serviceWorker).toContain("networkFirst(request, \"/dashboard\")");
     expect(serviceWorker).toContain("staleWhileRevalidate(request)");
+    expect(serviceWorker).toContain("/apple-touch-icon.png");
+    expect(serviceWorker).toContain("/icons/icon-192.png");
+    expect(serviceWorker).toContain("/icons/icon-512.png");
+    expect(serviceWorker).toContain("/icons/maskable-icon-512.png");
   });
 
   it("cleans stale PWA registrations and caches during development", async () => {
