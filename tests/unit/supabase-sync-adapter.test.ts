@@ -11,6 +11,7 @@ import type {
   Building,
   BuildingSector,
   ChecklistResult,
+  Control,
   ControlPhoto,
 } from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
@@ -194,6 +195,44 @@ describe("Supabase sync adapter", () => {
         status: "compliant",
       },
       table: "control_checklist_results",
+    });
+  });
+
+  it("maps control quality ratings to Supabase insert rows", () => {
+    const control: Control = {
+      archivedAt: null,
+      buildingId,
+      completedAt: null,
+      controlledBy: userId,
+      createdAt: now,
+      deletedAt: null,
+      detailsPurgedAt: null,
+      generalComment: null,
+      id: "77777777-7777-4777-8777-777777777777",
+      organizationId,
+      photosPurgedAt: null,
+      qualityRating: "unsatisfying",
+      startedAt: now,
+      status: "draft",
+      updatedAt: now,
+    };
+
+    expect(
+      toSupabaseMutation(
+        createOperation({
+          aggregateId: control.id,
+          entity: "controls",
+          payload: control,
+        }),
+      ),
+    ).toMatchObject({
+      row: {
+        id: control.id,
+        organization_id: organizationId,
+        quality_rating: "unsatisfying",
+        status: "draft",
+      },
+      table: "controls",
     });
   });
 

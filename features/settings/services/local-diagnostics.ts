@@ -4,6 +4,7 @@ import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import { createOutboxService } from "@/lib/sync/outbox";
 import { createPhotoUploadQueueService } from "@/lib/sync/photo-upload-queue";
+import { getControlLifecyclePreview } from "@/features/controls/services/control-lifecycle";
 import type { OutboxStatusSummary } from "@/types/sync";
 
 export {
@@ -12,6 +13,8 @@ export {
 } from "@/features/settings/services/diagnostic-summary";
 
 export type LocalDiagnostics = {
+  archivedControlCount: number;
+  blockedLifecycleControlCount: number;
   buildingCount: number;
   completedControlCount: number;
   draftControlCount: number;
@@ -20,6 +23,8 @@ export type LocalDiagnostics = {
   organizationCount: number;
   outbox: OutboxStatusSummary;
   photoUploads: OutboxStatusSummary;
+  purgeablePhotoControlCount: number;
+  purgeablePhotoCount: number;
 };
 
 export type GetLocalDiagnosticsOptions = {
@@ -38,9 +43,10 @@ export async function getLocalDiagnostics({
   database = db,
   userId,
 }: GetLocalDiagnosticsOptions): Promise<LocalDiagnostics> {
-  const [outbox, photoUploads] = await Promise.all([
+  const [outbox, photoUploads, lifecyclePreview] = await Promise.all([
     createOutboxService(database).countByStatus(),
     createPhotoUploadQueueService(database).countByStatus(),
+    getControlLifecyclePreview({ database, userId }),
   ]);
 
   if (!userId) {
@@ -91,9 +97,12 @@ export async function getLocalDiagnostics({
   ]);
 
   return {
+    archivedControlCount: lifecyclePreview.archivedControlCount,
+    blockedLifecycleControlCount: lifecyclePreview.blockedControlCount,
     buildingCount: buildings.length,
     completedControlCount: controls.filter(
-      (control) => control.status === "completed",
+      (control) =>
+        control.archivedAt === null && control.status === "completed",
     ).length,
     draftControlCount: controls.filter((control) => control.status === "draft")
       .length,
@@ -104,11 +113,15 @@ export async function getLocalDiagnostics({
     organizationCount: organizationIds.length,
     outbox,
     photoUploads,
+    purgeablePhotoControlCount: lifecyclePreview.purgeablePhotoControlCount,
+    purgeablePhotoCount: lifecyclePreview.purgeablePhotoCount,
   };
 }
 
 function createEmptyDiagnostics(): LocalDiagnostics {
   return {
+    archivedControlCount: 0,
+    blockedLifecycleControlCount: 0,
     buildingCount: 0,
     completedControlCount: 0,
     draftControlCount: 0,
@@ -117,5 +130,7 @@ function createEmptyDiagnostics(): LocalDiagnostics {
     organizationCount: 0,
     outbox: emptySummary,
     photoUploads: emptySummary,
+    purgeablePhotoControlCount: 0,
+    purgeablePhotoCount: 0,
   };
 }

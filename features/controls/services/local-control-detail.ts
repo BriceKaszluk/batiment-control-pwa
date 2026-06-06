@@ -3,7 +3,11 @@
 import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import { saveLocalMutation } from "@/lib/sync/local-mutation";
-import { checklistResultSchema, controlSchema } from "@/lib/validation/schemas";
+import {
+  checklistResultSchema,
+  controlQualityRatingSchema,
+  controlSchema,
+} from "@/lib/validation/schemas";
 import type {
   Building,
   ChecklistItem,
@@ -14,7 +18,10 @@ import type {
 } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
 
-export { getChecklistResultStatusLabel } from "@/features/controls/services/control-labels";
+export {
+  getControlQualityRatingLabel,
+  getChecklistResultStatusLabel,
+} from "@/features/controls/services/control-labels";
 
 export type LocalChecklistEntry = {
   item: ChecklistItem;
@@ -54,6 +61,16 @@ export type SaveControlCommentOptions = {
   createId?: () => string;
   database?: BatimentControlDatabase;
   now?: () => string;
+  userId: string | null;
+};
+
+export type SaveControlQualityRatingOptions = {
+  clientMutationId?: string;
+  controlId: string;
+  createId?: () => string;
+  database?: BatimentControlDatabase;
+  now?: () => string;
+  qualityRating: NonNullable<Control["qualityRating"]>;
   userId: string | null;
 };
 
@@ -155,6 +172,52 @@ export async function saveControlComment({
   const updatedControl: Control = {
     ...control,
     generalComment: normalizeComment(comment),
+    updatedAt: now(),
+  };
+
+  return saveLocalMutation({
+    clientMutationId,
+    createId,
+    database,
+    entity: "controls",
+    now,
+    record: updatedControl,
+    schema: controlSchema,
+    table: database.controls,
+  });
+}
+
+export async function saveControlQualityRating({
+  clientMutationId,
+  controlId,
+  createId = () => crypto.randomUUID(),
+  database = db,
+  now = () => new Date().toISOString(),
+  qualityRating,
+  userId,
+}: SaveControlQualityRatingOptions): Promise<LocalMutationResult<Control>> {
+  if (!userId) {
+    throw new Error("Utilisateur requis pour enregistrer l'etat global.");
+  }
+
+  const control = await database.controls.get(controlId);
+
+  if (!control || control.deletedAt !== null) {
+    throw new Error("Controle local introuvable.");
+  }
+
+  const membership = await database.organizationMembers.get([
+    control.organizationId,
+    userId,
+  ]);
+
+  if (!membership) {
+    throw new Error("Organisation locale non autorisee.");
+  }
+
+  const updatedControl: Control = {
+    ...control,
+    qualityRating: controlQualityRatingSchema.parse(qualityRating),
     updatedAt: now(),
   };
 

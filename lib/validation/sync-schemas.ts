@@ -46,6 +46,16 @@ export const createOutboxOperationInputSchema = outboxOperationSchema.pick({
   payload: true,
 });
 
+export const controlPhotoDeletePayloadSchema = z
+  .object({
+    deletedAt: z.string().datetime({ offset: true }),
+    id: z.string().uuid(),
+    organizationId: z.string().uuid(),
+    remotePath: z.string().trim().min(1).max(500),
+    updatedAt: z.string().datetime({ offset: true }),
+  })
+  .strict();
+
 export function parseOutboxPayload(value: unknown): Json {
   return jsonValueSchema.parse(value);
 }

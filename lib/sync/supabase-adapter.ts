@@ -4,6 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
 import type { RemoteSyncAdapter } from "@/lib/sync/sync-engine";
+import { controlPhotoStorageBucket } from "@/lib/sync/supabase-photo-upload-adapter";
+import { controlPhotoDeletePayloadSchema } from "@/lib/validation/sync-schemas";
 import {
   agentSchema,
   buildingSchema,
@@ -11,6 +13,7 @@ import {
   checklistItemSchema,
   checklistResultSchema,
   controlSchema,
+  controlSummarySchema,
   correctiveActionSchema,
 } from "@/lib/validation/schemas";
 import type {
@@ -20,6 +23,7 @@ import type {
   ChecklistItem,
   ChecklistResult,
   Control,
+  ControlSummary,
   CorrectiveAction,
 } from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
@@ -33,10 +37,15 @@ type SupabaseMutation =
   | { row: PublicTables["building_sectors"]["Insert"]; table: "building_sectors" }
   | { row: PublicTables["checklist_items"]["Insert"]; table: "checklist_items" }
   | { row: PublicTables["control_checklist_results"]["Insert"]; table: "control_checklist_results" }
+  | { row: ControlPhotoDeletePayload; table: "control_photos" }
   | { row: PublicTables["controls"]["Insert"]; table: "controls" }
+  | { row: PublicTables["control_summaries"]["Insert"]; table: "control_summaries" }
   | { row: PublicTables["corrective_actions"]["Insert"]; table: "corrective_actions" };
 
 type BrowserSupabaseClient = SupabaseClient<Database>;
+type ControlPhotoDeletePayload = ReturnType<
+  typeof controlPhotoDeletePayloadSchema.parse
+>;
 
 export function createSupabaseRemoteSyncAdapter(
   client: BrowserSupabaseClient = createClient(),
@@ -79,10 +88,22 @@ export function toSupabaseMutation(operation: OutboxOperation): SupabaseMutation
         ),
         table: "control_checklist_results",
       };
+    case "controlPhotos":
+      return {
+        row: controlPhotoDeletePayloadSchema.parse(operation.payload),
+        table: "control_photos",
+      };
     case "controls":
       return {
         row: toControlInsert(controlSchema.parse(operation.payload)),
         table: "controls",
+      };
+    case "controlSummaries":
+      return {
+        row: toControlSummaryInsert(
+          controlSummarySchema.parse(operation.payload),
+        ),
+        table: "control_summaries",
       };
     case "correctiveActions":
       return {
@@ -136,9 +157,37 @@ async function pushOutboxOperation(
       throwIfSupabaseError(error);
       return;
     }
+    case "control_photos": {
+      if (operation.operationType !== "delete") {
+        throw new Error("Operation photo non supportee.");
+      }
+
+      const { error: storageError } = await client.storage
+        .from(controlPhotoStorageBucket)
+        .remove([mutation.row.remotePath]);
+      throwIfSupabaseError(storageError);
+
+      const { error: rowError } = await client
+        .from("control_photos")
+        .update({
+          deleted_at: mutation.row.deletedAt,
+          updated_at: mutation.row.updatedAt,
+        })
+        .eq("id", mutation.row.id)
+        .eq("organization_id", mutation.row.organizationId);
+      throwIfSupabaseError(rowError);
+      return;
+    }
     case "controls": {
       const { error } = await client
         .from("controls")
+        .upsert(mutation.row, { onConflict: "id" });
+      throwIfSupabaseError(error);
+      return;
+    }
+    case "control_summaries": {
+      const { error } = await client
+        .from("control_summaries")
         .upsert(mutation.row, { onConflict: "id" });
       throwIfSupabaseError(error);
       return;
@@ -240,16 +289,47 @@ function toChecklistItemInsert(
 function toControlInsert(control: Control): PublicTables["controls"]["Insert"] {
   return {
     building_id: control.buildingId,
+    archived_at: control.archivedAt,
     completed_at: control.completedAt,
     controlled_by: control.controlledBy,
     created_at: control.createdAt,
     deleted_at: control.deletedAt,
+    details_purged_at: control.detailsPurgedAt,
     general_comment: control.generalComment,
     id: control.id,
     organization_id: control.organizationId,
+    photos_purged_at: control.photosPurgedAt,
+    quality_rating: control.qualityRating,
     started_at: control.startedAt,
     status: control.status,
     updated_at: control.updatedAt,
+  };
+}
+
+function toControlSummaryInsert(
+  summary: ControlSummary,
+): PublicTables["control_summaries"]["Insert"] {
+  return {
+    building_address: summary.buildingAddress,
+    building_id: summary.buildingId,
+    building_name: summary.buildingName,
+    checklist_result_count: summary.checklistResultCount,
+    completed_at: summary.completedAt,
+    control_id: summary.controlId,
+    controlled_by: summary.controlledBy,
+    corrective_action_count: summary.correctiveActionCount,
+    created_at: summary.createdAt,
+    deleted_at: summary.deletedAt,
+    general_comment: summary.generalComment,
+    id: summary.id,
+    non_compliant_result_count: summary.nonCompliantResultCount,
+    organization_id: summary.organizationId,
+    photo_count: summary.photoCount,
+    quality_rating: summary.qualityRating,
+    sector: summary.sector,
+    started_at: summary.startedAt,
+    status: summary.status,
+    updated_at: summary.updatedAt,
   };
 }
 

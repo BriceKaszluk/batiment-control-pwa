@@ -12,6 +12,7 @@ import {
   checklistItemSchema,
   checklistResultSchema,
   controlSchema,
+  controlSummarySchema,
   correctiveActionSchema,
 } from "@/lib/validation/schemas";
 
@@ -35,6 +36,10 @@ export function createRepositories(database: BatimentControlDatabase = db) {
       checklistResultSchema,
     ),
     controls: createOrganizationScopedRepository(database.controls, controlSchema),
+    controlSummaries: createOrganizationScopedRepository(
+      database.controlSummaries,
+      controlSummarySchema,
+    ),
     correctiveActions: createOrganizationScopedRepository(
       database.correctiveActions,
       correctiveActionSchema,

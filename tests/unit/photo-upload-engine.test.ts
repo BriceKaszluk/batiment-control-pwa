@@ -70,14 +70,18 @@ const building: Building = {
 };
 
 const control: Control = {
+  archivedAt: null,
   buildingId,
   completedAt: null,
   controlledBy: userId,
   createdAt: now,
   deletedAt: null,
+  detailsPurgedAt: null,
   generalComment: null,
   id: controlId,
   organizationId,
+  photosPurgedAt: null,
+  qualityRating: null,
   startedAt: now,
   status: "draft",
   updatedAt: now,

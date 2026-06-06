@@ -10,6 +10,7 @@ import type {
   ChecklistResult,
   Control,
   ControlPhoto,
+  ControlSummary,
   CorrectiveAction,
   Organization,
   OrganizationMember,
@@ -78,6 +79,14 @@ const versionEightStores = {
     "&id, organizationId, name, deletedAt, updatedAt, [organizationId+deletedAt]",
 };
 
+const versionNineStores = {
+  ...versionEightStores,
+  controlSummaries:
+    "&id, organizationId, controlId, buildingId, completedAt, deletedAt, updatedAt, [organizationId+deletedAt], [organizationId+completedAt]",
+  controls:
+    "&id, organizationId, buildingId, controlledBy, status, archivedAt, startedAt, deletedAt, updatedAt, [organizationId+buildingId], [organizationId+status], [organizationId+deletedAt], [organizationId+archivedAt]",
+};
+
 export class BatimentControlDatabase extends Dexie {
   agents!: Table<Agent, string>;
   buildings!: Table<Building, string>;
@@ -86,6 +95,7 @@ export class BatimentControlDatabase extends Dexie {
   checklistResults!: Table<ChecklistResult, string>;
   controls!: Table<Control, string>;
   controlPhotos!: Table<ControlPhoto, string>;
+  controlSummaries!: Table<ControlSummary, string>;
   correctiveActions!: Table<CorrectiveAction, string>;
   organizationMembers!: Table<OrganizationMember, [string, string]>;
   organizations!: Table<Organization, string>;
@@ -189,5 +199,30 @@ export class BatimentControlDatabase extends Dexie {
           }),
       );
     this.version(8).stores(versionEightStores);
+    this.version(9)
+      .stores(versionNineStores)
+      .upgrade((tx) =>
+        tx
+          .table("controls")
+          .toCollection()
+          .modify((control) => {
+            const record = control as Record<string, unknown>;
+
+            record.archivedAt =
+              typeof record.archivedAt === "string" ? record.archivedAt : null;
+            record.detailsPurgedAt =
+              typeof record.detailsPurgedAt === "string"
+                ? record.detailsPurgedAt
+                : null;
+            record.photosPurgedAt =
+              typeof record.photosPurgedAt === "string"
+                ? record.photosPurgedAt
+                : null;
+            record.qualityRating =
+              typeof record.qualityRating === "string"
+                ? record.qualityRating
+                : null;
+          }),
+      );
   }
 }

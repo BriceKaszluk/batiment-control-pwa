@@ -19,6 +19,11 @@ export type Database = {
         | "unknown";
       building_priority_level: "low" | "normal" | "high" | "critical";
       checklist_result_status: "compliant" | "non_compliant" | "not_applicable";
+      control_quality_rating:
+        | "satisfying"
+        | "acceptable"
+        | "to_improve"
+        | "unsatisfying";
       control_status: "draft" | "completed" | "canceled";
       corrective_action_status: "open" | "in_progress" | "done" | "canceled";
       member_role: "owner" | "admin" | "team_lead" | "cleaner";
@@ -309,41 +314,122 @@ export type Database = {
       };
       controls: {
         Insert: {
+          archived_at?: string | null;
           building_id: string;
           completed_at?: string | null;
           controlled_by: string;
           created_at?: string;
           deleted_at?: string | null;
+          details_purged_at?: string | null;
           general_comment?: string | null;
           id: string;
           organization_id: string;
+          photos_purged_at?: string | null;
+          quality_rating?: Database["public"]["Enums"]["control_quality_rating"] | null;
           started_at: string;
           status?: Database["public"]["Enums"]["control_status"];
           updated_at?: string;
         };
         Relationships: [];
         Row: {
+          archived_at: string | null;
           building_id: string;
           completed_at: string | null;
           controlled_by: string;
           created_at: string;
           deleted_at: string | null;
+          details_purged_at: string | null;
           general_comment: string | null;
           id: string;
           organization_id: string;
+          photos_purged_at: string | null;
+          quality_rating: Database["public"]["Enums"]["control_quality_rating"] | null;
           started_at: string;
           status: Database["public"]["Enums"]["control_status"];
           updated_at: string;
         };
         Update: {
+          archived_at?: string | null;
           building_id?: string;
           completed_at?: string | null;
           controlled_by?: string;
           created_at?: string;
           deleted_at?: string | null;
+          details_purged_at?: string | null;
           general_comment?: string | null;
           id?: string;
           organization_id?: string;
+          photos_purged_at?: string | null;
+          quality_rating?: Database["public"]["Enums"]["control_quality_rating"] | null;
+          started_at?: string;
+          status?: Database["public"]["Enums"]["control_status"];
+          updated_at?: string;
+        };
+      };
+      control_summaries: {
+        Insert: {
+          building_address?: string | null;
+          building_id: string;
+          building_name: string;
+          checklist_result_count?: number;
+          completed_at?: string | null;
+          control_id: string;
+          controlled_by: string;
+          corrective_action_count?: number;
+          created_at?: string;
+          deleted_at?: string | null;
+          general_comment?: string | null;
+          id: string;
+          non_compliant_result_count?: number;
+          organization_id: string;
+          photo_count?: number;
+          quality_rating?: Database["public"]["Enums"]["control_quality_rating"] | null;
+          sector: string;
+          started_at: string;
+          status: Database["public"]["Enums"]["control_status"];
+          updated_at?: string;
+        };
+        Relationships: [];
+        Row: {
+          building_address: string | null;
+          building_id: string;
+          building_name: string;
+          checklist_result_count: number;
+          completed_at: string | null;
+          control_id: string;
+          controlled_by: string;
+          corrective_action_count: number;
+          created_at: string;
+          deleted_at: string | null;
+          general_comment: string | null;
+          id: string;
+          non_compliant_result_count: number;
+          organization_id: string;
+          photo_count: number;
+          quality_rating: Database["public"]["Enums"]["control_quality_rating"] | null;
+          sector: string;
+          started_at: string;
+          status: Database["public"]["Enums"]["control_status"];
+          updated_at: string;
+        };
+        Update: {
+          building_address?: string | null;
+          building_id?: string;
+          building_name?: string;
+          checklist_result_count?: number;
+          completed_at?: string | null;
+          control_id?: string;
+          controlled_by?: string;
+          corrective_action_count?: number;
+          created_at?: string;
+          deleted_at?: string | null;
+          general_comment?: string | null;
+          id?: string;
+          non_compliant_result_count?: number;
+          organization_id?: string;
+          photo_count?: number;
+          quality_rating?: Database["public"]["Enums"]["control_quality_rating"] | null;
+          sector?: string;
           started_at?: string;
           status?: Database["public"]["Enums"]["control_status"];
           updated_at?: string;

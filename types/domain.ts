@@ -12,6 +12,7 @@ import type {
   controlPhotoSchema,
   controlCreateSchema,
   controlSchema,
+  controlSummarySchema,
   correctiveActionCreateSchema,
   correctiveActionSchema,
   organizationMemberSchema,
@@ -32,6 +33,7 @@ export type BuildingCreateInput = z.infer<typeof buildingCreateSchema>;
 export type ChecklistItem = z.infer<typeof checklistItemSchema>;
 export type Control = z.infer<typeof controlSchema>;
 export type ControlCreateInput = z.infer<typeof controlCreateSchema>;
+export type ControlSummary = z.infer<typeof controlSummarySchema>;
 export type ChecklistResult = z.infer<typeof checklistResultSchema>;
 export type ControlPhoto = z.infer<typeof controlPhotoSchema>;
 export type CorrectiveAction = z.infer<typeof correctiveActionSchema>;

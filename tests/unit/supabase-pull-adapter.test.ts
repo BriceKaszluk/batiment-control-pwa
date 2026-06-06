@@ -5,6 +5,7 @@ import {
   toBuilding,
   toBuildingSector,
   toChecklistResult,
+  toControl,
   toOrganization,
   toOrganizationMember,
 } from "@/lib/sync/supabase-pull-adapter";
@@ -158,6 +159,34 @@ describe("Supabase pull adapter", () => {
       controlId: row.control_id,
       organizationId,
       status: "non_compliant",
+    });
+  });
+
+  it("maps remote control quality ratings to local domain records", () => {
+    const row: PublicTables["controls"]["Row"] = {
+      archived_at: null,
+      building_id: buildingId,
+      completed_at: null,
+      controlled_by: userId,
+      created_at: now,
+      deleted_at: null,
+      details_purged_at: null,
+      general_comment: null,
+      id: "77777777-7777-4777-8777-777777777777",
+      organization_id: organizationId,
+      photos_purged_at: null,
+      quality_rating: "satisfying",
+      started_at: now,
+      status: "draft",
+      updated_at: now,
+    };
+
+    expect(toControl(row)).toMatchObject({
+      buildingId,
+      controlledBy: userId,
+      organizationId,
+      qualityRating: "satisfying",
+      status: "draft",
     });
   });
 });

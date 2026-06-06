@@ -2,6 +2,12 @@ import type { ChecklistResult, Control, PhotoUpload } from "@/types/domain";
 
 export const maxLocalPhotoSizeBytes = 8 * 1024 * 1024;
 
+export type ControlQualityRatingTone =
+  | "success"
+  | "positive"
+  | "warning"
+  | "danger";
+
 export function getControlStatusLabel(status: Control["status"]) {
   if (status === "completed") {
     return "Termine";
@@ -12,6 +18,42 @@ export function getControlStatusLabel(status: Control["status"]) {
   }
 
   return "Brouillon";
+}
+
+export function getControlQualityRatingLabel(
+  qualityRating: NonNullable<Control["qualityRating"]>,
+) {
+  if (qualityRating === "satisfying") {
+    return "Satisfaisant";
+  }
+
+  if (qualityRating === "acceptable") {
+    return "Acceptable";
+  }
+
+  if (qualityRating === "to_improve") {
+    return "A ameliorer";
+  }
+
+  return "Insatisfaisant";
+}
+
+export function getControlQualityRatingTone(
+  qualityRating: NonNullable<Control["qualityRating"]>,
+): ControlQualityRatingTone {
+  if (qualityRating === "satisfying") {
+    return "success";
+  }
+
+  if (qualityRating === "acceptable") {
+    return "positive";
+  }
+
+  if (qualityRating === "to_improve") {
+    return "warning";
+  }
+
+  return "danger";
 }
 
 export function getChecklistResultStatusLabel(

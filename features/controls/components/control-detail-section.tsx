@@ -7,6 +7,7 @@ import { CompleteControlButton } from "@/features/controls/components/complete-c
 import { ControlCommentEditor } from "@/features/controls/components/control-comment-editor";
 import { ControlCorrectiveActionsSection } from "@/features/controls/components/control-corrective-actions-section";
 import { ControlPhotosSection } from "@/features/controls/components/control-photos-section";
+import { ControlQualityRatingEditor } from "@/features/controls/components/control-quality-rating-editor";
 import { useLocalControlDetail } from "@/features/controls/hooks/use-local-control-detail";
 import { getControlStatusLabel } from "@/features/controls/services/control-labels";
 
@@ -68,6 +69,8 @@ export function ControlDetailSection({
           {detail.building?.address ?? "Adresse non renseignee"}
         </p>
       </div>
+
+      <ControlQualityRatingEditor control={detail.control} userId={userId} />
 
       <ControlCommentEditor control={detail.control} userId={userId} />
 

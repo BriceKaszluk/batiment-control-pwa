@@ -1,6 +1,12 @@
 export const memberRoles = ["owner", "admin", "team_lead", "cleaner"] as const;
 export const workspaceTypes = ["personal", "team"] as const;
 export const controlStatuses = ["draft", "completed", "canceled"] as const;
+export const controlQualityRatings = [
+  "satisfying",
+  "acceptable",
+  "to_improve",
+  "unsatisfying",
+] as const;
 export const checklistResultStatuses = [
   "compliant",
   "non_compliant",

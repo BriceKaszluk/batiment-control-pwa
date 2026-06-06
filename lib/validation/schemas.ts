@@ -4,6 +4,7 @@ import {
   agentStatuses,
   buildingAreas,
   buildingPriorityLevels,
+  controlQualityRatings,
   checklistResultStatuses,
   controlStatuses,
   correctiveActionStatuses,
@@ -20,6 +21,7 @@ export {
   agentStatuses,
   buildingAreas,
   buildingPriorityLevels,
+  controlQualityRatings,
   checklistResultStatuses,
   controlStatuses,
   correctiveActionStatuses,
@@ -35,6 +37,7 @@ export {
 export const memberRoleSchema = z.enum(memberRoles);
 export const workspaceTypeSchema = z.enum(workspaceTypes);
 export const controlStatusSchema = z.enum(controlStatuses);
+export const controlQualityRatingSchema = z.enum(controlQualityRatings);
 export const checklistResultStatusSchema = z.enum(checklistResultStatuses);
 export const correctiveActionStatusSchema = z.enum(correctiveActionStatuses);
 export const photoUploadStatusSchema = z.enum(photoUploadStatuses);
@@ -183,14 +186,18 @@ export const checklistItemSchema = z
 
 const controlObjectSchema = z
   .object({
+    archivedAt: isoDateTimeSchema.nullable().default(null),
     buildingId: uuidSchema,
     completedAt: isoDateTimeSchema.nullable(),
     controlledBy: uuidSchema,
     createdAt: isoDateTimeSchema,
     deletedAt: isoDateTimeSchema.nullable(),
+    detailsPurgedAt: isoDateTimeSchema.nullable().default(null),
     generalComment: nullableText(3000),
     id: uuidSchema,
     organizationId: uuidSchema,
+    photosPurgedAt: isoDateTimeSchema.nullable().default(null),
+    qualityRating: controlQualityRatingSchema.nullable().default(null),
     startedAt: isoDateTimeSchema,
     status: controlStatusSchema,
     updatedAt: isoDateTimeSchema,
@@ -204,6 +211,31 @@ export const controlSchema = controlObjectSchema.refine(
     path: ["completedAt"],
   },
 );
+
+export const controlSummarySchema = z
+  .object({
+    buildingAddress: nullableText(240).default(null),
+    buildingId: uuidSchema,
+    buildingName: z.string().trim().min(1).max(160),
+    checklistResultCount: z.number().int().min(0),
+    completedAt: isoDateTimeSchema.nullable(),
+    controlId: uuidSchema,
+    controlledBy: uuidSchema,
+    correctiveActionCount: z.number().int().min(0),
+    createdAt: isoDateTimeSchema,
+    deletedAt: isoDateTimeSchema.nullable(),
+    generalComment: nullableText(3000).default(null),
+    id: uuidSchema,
+    nonCompliantResultCount: z.number().int().min(0),
+    organizationId: uuidSchema,
+    photoCount: z.number().int().min(0),
+    qualityRating: controlQualityRatingSchema.nullable().default(null),
+    sector: z.string().trim().min(1).max(160),
+    startedAt: isoDateTimeSchema,
+    status: controlStatusSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
 
 export const checklistResultSchema = z
   .object({

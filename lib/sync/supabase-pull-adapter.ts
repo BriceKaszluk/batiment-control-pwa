@@ -18,6 +18,7 @@ import type {
   ChecklistItem,
   ChecklistResult,
   Control,
+  ControlSummary,
   CorrectiveAction,
   Organization,
   OrganizationMember,
@@ -65,6 +66,7 @@ export function createSupabaseRemotePullAdapter(
         buildingSectorRows,
         checklistItemRows,
         controlRows,
+        controlSummaryRows,
         checklistResultRows,
         correctiveActionRows,
       ] = await Promise.all([
@@ -74,6 +76,7 @@ export function createSupabaseRemotePullAdapter(
         fetchBuildingSectors(client, organizationIds),
         fetchChecklistItems(client, organizationIds),
         fetchControls(client, organizationIds),
+        fetchControlSummaries(client, organizationIds),
         fetchChecklistResults(client, organizationIds),
         fetchCorrectiveActions(client, organizationIds),
       ]);
@@ -85,6 +88,7 @@ export function createSupabaseRemotePullAdapter(
         checklistItems: checklistItemRows.map(toChecklistItem),
         checklistResults: checklistResultRows.map(toChecklistResult),
         controls: controlRows.map(toControl),
+        controlSummaries: controlSummaryRows.map(toControlSummary),
         correctiveActions: correctiveActionRows.map(toCorrectiveAction),
         organizationMembers,
         organizations: organizationRows.map(toOrganization),
@@ -188,14 +192,45 @@ export function toChecklistItem(
 
 export function toControl(row: PublicTables["controls"]["Row"]): Control {
   return {
+    archivedAt: row.archived_at,
     buildingId: row.building_id,
     completedAt: row.completed_at,
     controlledBy: row.controlled_by,
     createdAt: row.created_at,
     deletedAt: row.deleted_at,
+    detailsPurgedAt: row.details_purged_at,
     generalComment: row.general_comment,
     id: row.id,
     organizationId: row.organization_id,
+    photosPurgedAt: row.photos_purged_at,
+    qualityRating: row.quality_rating,
+    startedAt: row.started_at,
+    status: row.status,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function toControlSummary(
+  row: PublicTables["control_summaries"]["Row"],
+): ControlSummary {
+  return {
+    buildingAddress: row.building_address,
+    buildingId: row.building_id,
+    buildingName: row.building_name,
+    checklistResultCount: row.checklist_result_count,
+    completedAt: row.completed_at,
+    controlId: row.control_id,
+    controlledBy: row.controlled_by,
+    correctiveActionCount: row.corrective_action_count,
+    createdAt: row.created_at,
+    deletedAt: row.deleted_at,
+    generalComment: row.general_comment,
+    id: row.id,
+    nonCompliantResultCount: row.non_compliant_result_count,
+    organizationId: row.organization_id,
+    photoCount: row.photo_count,
+    qualityRating: row.quality_rating,
+    sector: row.sector,
     startedAt: row.started_at,
     status: row.status,
     updatedAt: row.updated_at,
@@ -310,6 +345,19 @@ async function fetchControls(
 ) {
   const { data, error } = await client
     .from("controls")
+    .select("*")
+    .in("organization_id", organizationIds);
+  throwIfSupabaseError(error);
+
+  return data ?? [];
+}
+
+async function fetchControlSummaries(
+  client: BrowserSupabaseClient,
+  organizationIds: string[],
+) {
+  const { data, error } = await client
+    .from("control_summaries")
     .select("*")
     .in("organization_id", organizationIds);
   throwIfSupabaseError(error);

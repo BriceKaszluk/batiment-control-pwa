@@ -26,6 +26,14 @@ const buildingSectorsMigration = readFileSync(
   "supabase/migrations/20260606110000_add_building_sectors.sql",
   "utf8",
 );
+const controlQualityRatingMigration = readFileSync(
+  "supabase/migrations/20260606120000_add_control_quality_rating.sql",
+  "utf8",
+);
+const controlLifecycleMigration = readFileSync(
+  "supabase/migrations/20260606130000_add_control_lifecycle.sql",
+  "utf8",
+);
 
 const publicTables = [
   "organizations",
@@ -176,5 +184,50 @@ describe("building sectors Supabase migration", () => {
     expect(buildingSectorsMigration).toContain(
       "created_by = (select auth.uid())",
     );
+  });
+});
+
+describe("control quality rating Supabase migration", () => {
+  it("adds a nullable quality rating enum to controls", () => {
+    expect(controlQualityRatingMigration).toContain(
+      "create type public.control_quality_rating as enum",
+    );
+    expect(controlQualityRatingMigration).toContain("'satisfying'");
+    expect(controlQualityRatingMigration).toContain("'acceptable'");
+    expect(controlQualityRatingMigration).toContain("'to_improve'");
+    expect(controlQualityRatingMigration).toContain("'unsatisfying'");
+    expect(controlQualityRatingMigration).toContain(
+      "add column if not exists quality_rating public.control_quality_rating",
+    );
+    expect(controlQualityRatingMigration).not.toContain("service_role");
+  });
+});
+
+describe("control lifecycle Supabase migration", () => {
+  it("adds lifecycle columns and a lightweight summary table", () => {
+    expect(controlLifecycleMigration).toContain("archived_at timestamptz");
+    expect(controlLifecycleMigration).toContain("photos_purged_at timestamptz");
+    expect(controlLifecycleMigration).toContain("details_purged_at timestamptz");
+    expect(controlLifecycleMigration).toContain(
+      "create table public.control_summaries",
+    );
+    expect(controlLifecycleMigration).toContain("photo_count integer not null");
+    expect(controlLifecycleMigration).not.toContain("service_role");
+  });
+
+  it("protects summaries with RLS and allows storage photo deletion", () => {
+    expect(controlLifecycleMigration).toContain(
+      "alter table public.control_summaries enable row level security;",
+    );
+    expect(controlLifecycleMigration).toContain(
+      "alter table public.control_summaries force row level security;",
+    );
+    expect(controlLifecycleMigration).toMatch(
+      /create policy "[^"]+"\s+on public\.control_summaries\s+[\s\S]+?to authenticated/i,
+    );
+    expect(controlLifecycleMigration).toContain(
+      "on storage.objects\nfor delete",
+    );
+    expect(controlLifecycleMigration).toContain("bucket_id = 'control-photos'");
   });
 });

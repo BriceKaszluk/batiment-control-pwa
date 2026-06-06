@@ -4,9 +4,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { BatimentControlDatabase } from "@/lib/db/schema";
 import {
+  getControlQualityRatingLabel,
   getChecklistResultStatusLabel,
   getLocalControlDetail,
   saveControlComment,
+  saveControlQualityRating,
   saveChecklistResult,
 } from "@/features/controls/services/local-control-detail";
 import type {
@@ -77,14 +79,18 @@ const building: Building = {
 };
 
 const control: Control = {
+  archivedAt: null,
   buildingId,
   completedAt: null,
   controlledBy: userId,
   createdAt: now,
   deletedAt: null,
+  detailsPurgedAt: null,
   generalComment: null,
   id: controlId,
   organizationId,
+  photosPurgedAt: null,
+  qualityRating: null,
   startedAt: now,
   status: "draft",
   updatedAt: now,
@@ -250,7 +256,35 @@ describe("local control detail", () => {
     });
   });
 
+  it("updates the control quality rating locally with an outbox operation", async () => {
+    const result = await saveControlQualityRating({
+      controlId,
+      createId: createIdFactory([mutationId, operationId]),
+      database,
+      now: () => later,
+      qualityRating: "to_improve",
+      userId,
+    });
+
+    expect(result.record).toMatchObject({
+      id: controlId,
+      qualityRating: "to_improve",
+      updatedAt: later,
+    });
+    await expect(database.controls.get(controlId)).resolves.toEqual(result.record);
+    await expect(database.outbox.get(operationId)).resolves.toMatchObject({
+      aggregateId: controlId,
+      entity: "controls",
+      organizationId,
+      status: "pending",
+    });
+  });
+
   it("formats checklist result labels", () => {
+    expect(getControlQualityRatingLabel("satisfying")).toBe("Satisfaisant");
+    expect(getControlQualityRatingLabel("acceptable")).toBe("Acceptable");
+    expect(getControlQualityRatingLabel("to_improve")).toBe("A ameliorer");
+    expect(getControlQualityRatingLabel("unsatisfying")).toBe("Insatisfaisant");
     expect(getChecklistResultStatusLabel("compliant")).toBe("Conforme");
     expect(getChecklistResultStatusLabel("non_compliant")).toBe("Non conforme");
     expect(getChecklistResultStatusLabel("not_applicable")).toBe(

@@ -81,14 +81,18 @@ const building: Building = {
 
 function createControl(overrides: Partial<Control> = {}): Control {
   return {
+    archivedAt: null,
     buildingId,
     completedAt: null,
     controlledBy: userId,
     createdAt: now,
     deletedAt: null,
+    detailsPurgedAt: null,
     generalComment: null,
     id: controlId,
     organizationId,
+    photosPurgedAt: null,
+    qualityRating: null,
     startedAt: now,
     status: "draft",
     updatedAt: now,

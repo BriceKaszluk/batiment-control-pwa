@@ -283,12 +283,35 @@ describe("domain schemas", () => {
       generalComment: null,
       id: controlId,
       organizationId,
+      qualityRating: "acceptable",
       startedAt: now,
       status: "completed",
       updatedAt: now,
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("defaults a draft control without a quality rating", () => {
+    const result = controlSchema.safeParse({
+      buildingId,
+      completedAt: null,
+      controlledBy: userId,
+      createdAt: now,
+      deletedAt: null,
+      generalComment: null,
+      id: controlId,
+      organizationId,
+      startedAt: now,
+      status: "draft",
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      throw new Error("Expected the control to be valid.");
+    }
+    expect(result.data.qualityRating).toBeNull();
   });
 
   it("requires done corrective actions to have a resolution date", () => {

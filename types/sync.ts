@@ -6,7 +6,9 @@ export const synchronizableEntities = [
   "buildingSectors",
   "checklistItems",
   "checklistResults",
+  "controlPhotos",
   "controls",
+  "controlSummaries",
   "correctiveActions",
 ] as const;
 

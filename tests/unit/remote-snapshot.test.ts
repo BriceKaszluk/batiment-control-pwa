@@ -8,6 +8,7 @@ import type {
   Agent,
   Building,
   BuildingSector,
+  Control,
   Organization,
   OrganizationMember,
 } from "@/types/domain";
@@ -34,6 +35,7 @@ function createSnapshot(
     checklistItems: [],
     checklistResults: [],
     controls: [],
+    controlSummaries: [],
     correctiveActions: [],
     organizationMembers: [],
     organizations: [],
@@ -98,6 +100,24 @@ const building: Building = {
   updatedAt: older,
 };
 
+const control: Control = {
+  archivedAt: null,
+  buildingId,
+  completedAt: null,
+  controlledBy: userId,
+  createdAt: older,
+  deletedAt: null,
+  detailsPurgedAt: null,
+  generalComment: null,
+  id: "55555555-5555-4555-8555-555555555555",
+  organizationId,
+  photosPurgedAt: null,
+  qualityRating: "acceptable",
+  startedAt: older,
+  status: "draft",
+  updatedAt: older,
+};
+
 describe("remote snapshot import", () => {
   let database: BatimentControlDatabase;
 
@@ -149,6 +169,17 @@ describe("remote snapshot import", () => {
     await expect(database.buildingSectors.get(buildingSector.id)).resolves.toEqual(
       buildingSector,
     );
+  });
+
+  it("saves remote controls with their quality rating locally", async () => {
+    await saveRemoteSnapshot(
+      createSnapshot({
+        controls: [control],
+      }),
+      database,
+    );
+
+    await expect(database.controls.get(control.id)).resolves.toEqual(control);
   });
 
   it("keeps a newer local version instead of overwriting it", async () => {

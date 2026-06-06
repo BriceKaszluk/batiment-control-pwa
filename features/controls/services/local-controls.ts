@@ -193,14 +193,18 @@ export async function startDraftControl({
 
   const timestamp = now();
   const control: Control = {
+    archivedAt: null,
     buildingId: building.id,
     completedAt: null,
     controlledBy: userId,
     createdAt: timestamp,
     deletedAt: null,
+    detailsPurgedAt: null,
     generalComment: null,
     id: createId(),
     organizationId: building.organizationId,
+    photosPurgedAt: null,
+    qualityRating: null,
     startedAt: timestamp,
     status: "draft",
     updatedAt: timestamp,
@@ -286,7 +290,10 @@ export async function listControlHistoryForUser({
     .where("organizationId")
     .anyOf(organizationIds)
     .filter(
-      (control) => control.deletedAt === null && control.status === "completed",
+      (control) =>
+        control.archivedAt === null &&
+        control.deletedAt === null &&
+        control.status === "completed",
     )
     .toArray();
   const sortedControls = controls.sort(compareControlsByCompletedAt);

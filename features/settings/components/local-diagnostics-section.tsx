@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  Archive,
   Building2,
   Camera,
   CheckCircle2,
@@ -9,9 +10,12 @@ import {
   Database,
   Loader2,
   ShieldCheck,
+  Trash2,
   Wrench,
 } from "lucide-react";
+import { useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import { useLocalDiagnostics } from "@/features/settings/hooks/use-local-diagnostics";
 import {
   getPendingSyncCount,
@@ -33,6 +37,9 @@ export function LocalDiagnosticsSection({
   userId,
 }: Readonly<LocalDiagnosticsSectionProps>) {
   const { diagnostics, error, isLoading } = useLocalDiagnostics({ userId });
+  const [lifecycleError, setLifecycleError] = useState<string | null>(null);
+  const [lifecycleMessage, setLifecycleMessage] = useState<string | null>(null);
+  const [isApplyingLifecycle, setIsApplyingLifecycle] = useState(false);
 
   if (isLoading) {
     return (
@@ -97,6 +104,17 @@ export function LocalDiagnosticsSection({
           value={diagnostics.localPhotoCount}
         />
         <Metric
+          icon={Archive}
+          label="Archives"
+          value={diagnostics.archivedControlCount}
+        />
+        <Metric
+          icon={Trash2}
+          label="A purger"
+          tone={diagnostics.purgeablePhotoCount > 0 ? "pending" : "neutral"}
+          value={diagnostics.purgeablePhotoCount}
+        />
+        <Metric
           icon={syncErrorCount > 0 ? AlertTriangle : CheckCircle2}
           label="Sync"
           tone={syncErrorCount > 0 ? "error" : pendingSyncCount > 0 ? "pending" : "ok"}
@@ -116,6 +134,66 @@ export function LocalDiagnosticsSection({
         label="Photos"
         summary={diagnostics.photoUploads}
       />
+
+      <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold">Cycle de vie</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {diagnostics.blockedLifecycleControlCount > 0
+                ? `${diagnostics.blockedLifecycleControlCount} controle bloque`
+                : `${diagnostics.purgeablePhotoControlCount} controle avec photos`}
+            </p>
+          </div>
+          <Archive aria-hidden="true" className="size-5 shrink-0 text-primary" />
+        </div>
+
+        <Button
+          className="h-11 w-full"
+          disabled={!userId || isApplyingLifecycle}
+          onClick={() => {
+            setLifecycleError(null);
+            setLifecycleMessage(null);
+            setIsApplyingLifecycle(true);
+
+            void import("@/features/controls/services/control-lifecycle")
+              .then((controlLifecycleModule) =>
+                controlLifecycleModule.applyControlLifecyclePolicy({ userId }),
+              )
+              .then((result) => {
+                setLifecycleMessage(
+                  `${result.archivedNowCount} archive, ${result.photoPurgedNowCount} photo purgee`,
+                );
+              })
+              .catch((error: unknown) => {
+                setLifecycleError(
+                  error instanceof Error
+                    ? error.message
+                    : "Cycle de vie indisponible",
+                );
+              })
+              .finally(() => {
+                setIsApplyingLifecycle(false);
+              });
+          }}
+          type="button"
+          variant="outline"
+        >
+          {isApplyingLifecycle ? (
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+          ) : (
+            <Archive aria-hidden="true" className="size-4" />
+          )}
+          Appliquer la politique
+        </Button>
+
+        {lifecycleMessage ? (
+          <p className="text-sm font-medium text-primary">{lifecycleMessage}</p>
+        ) : null}
+        {lifecycleError ? (
+          <p className="text-sm font-medium text-red-700">{lifecycleError}</p>
+        ) : null}
+      </section>
     </section>
   );
 }
