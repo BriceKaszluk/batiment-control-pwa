@@ -2,7 +2,18 @@
 
 import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
-import type { Agent, Building, Organization } from "@/types/domain";
+import {
+  calculateBuildingPriorityScore,
+  type BuildingPriorityScore,
+} from "@/features/buildings/services/building-priority-score";
+import type {
+  Agent,
+  Building,
+  ChecklistResult,
+  Control,
+  CorrectiveAction,
+  Organization,
+} from "@/types/domain";
 
 export {
   getBuildingPriorityLabel,
@@ -13,23 +24,80 @@ export {
 export type ListBuildingsForUserOptions = {
   database?: BatimentControlDatabase;
   limit?: number;
+  now?: () => string;
+  sectorName?: string | null;
   userId: string | null;
 };
 
 export type BuildingListEntry = {
   agent: Agent | null;
   building: Building;
+  priorityScore: BuildingPriorityScore;
 };
 
 export async function listBuildingsForUser({
   database = db,
   limit,
+  now,
+  sectorName,
   userId,
 }: ListBuildingsForUserOptions): Promise<Building[]> {
+  const entries = await listBuildingEntriesForUser({
+    database,
+    limit,
+    now,
+    sectorName,
+    userId,
+  });
+
+  return entries.map((entry) => entry.building);
+}
+
+export async function listBuildingEntriesForUser({
+  database = db,
+  limit,
+  now = () => new Date().toISOString(),
+  sectorName,
+  userId,
+}: ListBuildingsForUserOptions): Promise<BuildingListEntry[]> {
   if (!userId) {
     return [];
   }
 
+  const buildings = await listVisibleBuildingsForUser({
+    database,
+    sectorName,
+    userId,
+  });
+  const [agentsById, scoreContextsByBuildingId] = await Promise.all([
+    getAgentsById({ buildings, database }),
+    getScoreContextsByBuildingId({ buildings, database }),
+  ]);
+  const scoredEntries = buildings.map((building) => ({
+    agent: building.assignedAgentId
+      ? agentsById.get(building.assignedAgentId) ?? null
+      : null,
+    building,
+    priorityScore: calculateBuildingPriorityScore({
+      building,
+      now: now(),
+      ...scoreContextsByBuildingId.get(building.id),
+    }),
+  }));
+  const sortedEntries = scoredEntries.sort(compareBuildingEntriesByPriorityScore);
+
+  return typeof limit === "number" ? sortedEntries.slice(0, limit) : sortedEntries;
+}
+
+async function listVisibleBuildingsForUser({
+  database,
+  sectorName,
+  userId,
+}: {
+  database: BatimentControlDatabase;
+  sectorName?: string | null;
+  userId: string;
+}) {
   const organizationMembers = await database.organizationMembers
     .where("userId")
     .equals(userId)
@@ -57,24 +125,23 @@ export async function listBuildingsForUser({
   const buildings = await database.buildings
     .where("organizationId")
     .anyOf(visibleOrganizationIds)
-    .filter((building) => building.deletedAt === null)
+    .filter(
+      (building) =>
+        building.deletedAt === null &&
+        (!sectorName || normalizeSectorName(building.sector) === normalizeSectorName(sectorName)),
+    )
     .toArray();
 
-  const sortedBuildings = buildings.sort(compareBuildingsByFieldPriority);
-
-  return typeof limit === "number"
-    ? sortedBuildings.slice(0, limit)
-    : sortedBuildings;
+  return buildings;
 }
 
-export async function listBuildingEntriesForUser(
-  options: ListBuildingsForUserOptions,
-): Promise<BuildingListEntry[]> {
-  const database = options.database ?? db;
-  const buildings = await listBuildingsForUser({
-    ...options,
-    database,
-  });
+async function getAgentsById({
+  buildings,
+  database,
+}: {
+  buildings: Building[];
+  database: BatimentControlDatabase;
+}) {
   const agentIds = [
     ...new Set(
       buildings
@@ -84,14 +151,11 @@ export async function listBuildingEntriesForUser(
   ];
 
   if (agentIds.length === 0) {
-    return buildings.map((building) => ({
-      agent: null,
-      building,
-    }));
+    return new Map<string, Agent>();
   }
 
   const agents = await database.agents.bulkGet(agentIds);
-  const agentById = new Map(
+  return new Map(
     agents
       .filter(
         (agent): agent is Agent =>
@@ -99,54 +163,119 @@ export async function listBuildingEntriesForUser(
       )
       .map((agent) => [agent.id, agent]),
   );
-
-  return buildings.map((building) => ({
-    agent: building.assignedAgentId
-      ? agentById.get(building.assignedAgentId) ?? null
-      : null,
-    building,
-  }));
 }
 
-export function compareBuildingsByFieldPriority(
-  firstBuilding: Building,
-  secondBuilding: Building,
+type BuildingScoreContext = {
+  latestChecklistResults: ChecklistResult[];
+  latestCompletedControl: Control | null;
+  openCorrectiveActions: CorrectiveAction[];
+};
+
+async function getScoreContextsByBuildingId({
+  buildings,
+  database,
+}: {
+  buildings: Building[];
+  database: BatimentControlDatabase;
+}) {
+  const buildingIds = buildings.map((building) => building.id);
+  const contextByBuildingId = new Map<string, BuildingScoreContext>(
+    buildingIds.map((buildingId) => [
+      buildingId,
+      {
+        latestChecklistResults: [],
+        latestCompletedControl: null,
+        openCorrectiveActions: [],
+      },
+    ]),
+  );
+
+  if (buildingIds.length === 0) {
+    return contextByBuildingId;
+  }
+
+  const [controls, correctiveActions] = await Promise.all([
+    database.controls
+      .where("buildingId")
+      .anyOf(buildingIds)
+      .filter(
+        (control) =>
+          control.deletedAt === null &&
+          control.status === "completed" &&
+          control.completedAt !== null,
+      )
+      .toArray(),
+    database.correctiveActions
+      .where("buildingId")
+      .anyOf(buildingIds)
+      .filter(
+        (action) =>
+          action.deletedAt === null &&
+          (action.status === "open" || action.status === "in_progress"),
+      )
+      .toArray(),
+  ]);
+  const latestControlByBuildingId = new Map<string, Control>();
+
+  for (const control of controls) {
+    const currentControl = latestControlByBuildingId.get(control.buildingId);
+
+    if (
+      !currentControl ||
+      Date.parse(control.completedAt ?? control.startedAt) >
+        Date.parse(currentControl.completedAt ?? currentControl.startedAt)
+    ) {
+      latestControlByBuildingId.set(control.buildingId, control);
+    }
+  }
+
+  const latestControlIds = [...latestControlByBuildingId.values()].map(
+    (control) => control.id,
+  );
+  const checklistResults =
+    latestControlIds.length > 0
+      ? await database.checklistResults
+          .where("controlId")
+          .anyOf(latestControlIds)
+          .toArray()
+      : [];
+
+  for (const control of latestControlByBuildingId.values()) {
+    const context = contextByBuildingId.get(control.buildingId);
+
+    if (context) {
+      context.latestCompletedControl = control;
+      context.latestChecklistResults = checklistResults.filter(
+        (result) => result.controlId === control.id,
+      );
+    }
+  }
+
+  for (const action of correctiveActions) {
+    const context = contextByBuildingId.get(action.buildingId);
+
+    if (context) {
+      context.openCorrectiveActions.push(action);
+    }
+  }
+
+  return contextByBuildingId;
+}
+
+export function compareBuildingEntriesByPriorityScore(
+  firstEntry: BuildingListEntry,
+  secondEntry: BuildingListEntry,
 ) {
-  const priorityDifference =
-    toPriorityRank(secondBuilding.priorityLevel) -
-    toPriorityRank(firstBuilding.priorityLevel);
+  const scoreDifference =
+    secondEntry.priorityScore.score - firstEntry.priorityScore.score;
 
-  if (priorityDifference !== 0) {
-    return priorityDifference;
+  if (scoreDifference !== 0) {
+    return scoreDifference;
   }
 
-  const firstControlRank = toLastControlRank(firstBuilding.lastControlAt);
-  const secondControlRank = toLastControlRank(secondBuilding.lastControlAt);
-  const lastControlDifference = firstControlRank - secondControlRank;
-
-  if (lastControlDifference !== 0) {
-    return lastControlDifference;
-  }
-
-  return firstBuilding.name.localeCompare(secondBuilding.name, "fr");
+  return firstEntry.building.name.localeCompare(secondEntry.building.name, "fr");
 }
 
-function toLastControlRank(lastControlAt: string | null) {
-  return lastControlAt ? Date.parse(lastControlAt) : Number.NEGATIVE_INFINITY;
-}
-
-function toPriorityRank(priorityLevel: Building["priorityLevel"]) {
-  if (priorityLevel === "critical") {
-    return 3;
-  }
-
-  if (priorityLevel === "high") {
-    return 2;
-  }
-
-  if (priorityLevel === "normal") {
-    return 1;
-  }
-
-  return 0;
+function normalizeSectorName(sectorName: string) {
+  return sectorName.trim().toLocaleLowerCase("fr");
 }

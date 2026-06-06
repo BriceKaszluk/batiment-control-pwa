@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/layout/page-header";
-import { BuildingsListSection } from "@/features/buildings/components/buildings-list-section";
+import { DashboardPriorityBuildingsSection } from "@/features/buildings/components/dashboard-priority-buildings-section";
 import { getAppAuthState } from "@/features/auth/session";
 
 export default async function DashboardPage() {
@@ -12,11 +12,7 @@ export default async function DashboardPage() {
         title="Priorites terrain"
         description="Vue de depart pour les controles a organiser."
       />
-      <BuildingsListSection
-        limit={5}
-        title="Batiments prioritaires"
-        userId={authState.userId}
-      />
+      <DashboardPriorityBuildingsSection userId={authState.userId} />
     </div>
   );
 }

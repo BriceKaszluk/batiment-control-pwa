@@ -7,16 +7,22 @@ import { useLocalBuildings } from "@/features/buildings/hooks/use-local-building
 
 type BuildingsListSectionProps = {
   limit?: number;
+  sectorName?: string | null;
   title: string;
   userId: string | null;
 };
 
 export function BuildingsListSection({
   limit,
+  sectorName,
   title,
   userId,
 }: Readonly<BuildingsListSectionProps>) {
-  const { entries, error, isLoading } = useLocalBuildings({ limit, userId });
+  const { entries, error, isLoading } = useLocalBuildings({
+    limit,
+    sectorName,
+    userId,
+  });
 
   if (isLoading) {
     return (
@@ -62,11 +68,12 @@ export function BuildingsListSection({
         </p>
       </div>
       <div className="space-y-3">
-        {entries.map(({ agent, building }) => (
+        {entries.map(({ agent, building, priorityScore }) => (
           <BuildingListItem
             agent={agent}
             building={building}
             key={building.id}
+            priorityScore={priorityScore}
             userId={userId}
           />
         ))}

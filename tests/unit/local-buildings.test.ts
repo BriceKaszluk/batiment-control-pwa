@@ -103,7 +103,7 @@ describe("local buildings", () => {
     ).resolves.toEqual([visibleBuilding]);
   });
 
-  it("sorts buildings by priority then oldest control date", async () => {
+  it("sorts buildings by calculated priority score", async () => {
     const neverControlled = createBuilding({
       id: "33333333-3333-4333-8333-333333333333",
       name: "Jamais controle",
@@ -125,8 +125,8 @@ describe("local buildings", () => {
     await database.buildings.bulkPut([lowerPriority, oldControl, neverControlled]);
 
     await expect(
-      listBuildingsForUser({ database, userId }),
-    ).resolves.toEqual([neverControlled, oldControl, lowerPriority]);
+      listBuildingsForUser({ database, now: () => now, userId }),
+    ).resolves.toEqual([neverControlled, lowerPriority, oldControl]);
   });
 
   it("excludes deleted buildings and applies limits", async () => {
@@ -179,6 +179,9 @@ describe("local buildings", () => {
       {
         agent,
         building: assignedBuilding,
+        priorityScore: expect.objectContaining({
+          score: 48,
+        }),
       },
     ]);
 
@@ -197,6 +200,9 @@ describe("local buildings", () => {
           status: "sick_leave",
         }),
         building: assignedBuilding,
+        priorityScore: expect.objectContaining({
+          score: 48,
+        }),
       },
     ]);
   });

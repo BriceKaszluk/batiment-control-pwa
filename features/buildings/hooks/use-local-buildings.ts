@@ -17,11 +17,12 @@ type LiveQuerySubscription = {
 
 type UseLocalBuildingsOptions = Pick<
   ListBuildingsForUserOptions,
-  "limit" | "userId"
+  "limit" | "sectorName" | "userId"
 >;
 
 export function useLocalBuildings({
   limit,
+  sectorName,
   userId,
 }: UseLocalBuildingsOptions): LocalBuildingsState {
   const [state, setState] = useState<LocalBuildingsState>({
@@ -51,7 +52,11 @@ export function useLocalBuildings({
 
         subscription = dexieModule
           .liveQuery(() =>
-            localBuildingsModule.listBuildingEntriesForUser({ limit, userId }),
+            localBuildingsModule.listBuildingEntriesForUser({
+              limit,
+              sectorName,
+              userId,
+            }),
           )
           .subscribe({
             error: (error: unknown) => {
@@ -86,7 +91,7 @@ export function useLocalBuildings({
       isCanceled = true;
       subscription?.unsubscribe();
     };
-  }, [limit, userId]);
+  }, [limit, sectorName, userId]);
 
   return state;
 }
