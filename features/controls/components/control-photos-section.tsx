@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, ImageIcon, Loader2 } from "lucide-react";
+import { Camera, ImageIcon, Loader2, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
@@ -153,6 +153,8 @@ export function ControlPhotosSection({
 }
 
 function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
+  const photoLabel = photo.caption?.trim() || photo.fileName;
+  const [isExpanded, setIsExpanded] = useState(false);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -164,12 +166,39 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
     };
   }, [photo.blob]);
 
+  useEffect(() => {
+    if (!isExpanded) {
+      return;
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsExpanded(false);
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isExpanded]);
+
   return (
     <article className="overflow-hidden rounded-md border bg-background shadow-sm">
-      <div className="relative aspect-[4/3] bg-muted">
+      <button
+        aria-label={`Agrandir la photo ${photoLabel}`}
+        className="relative block aspect-[4/3] w-full bg-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => {
+          if (objectUrl) {
+            setIsExpanded(true);
+          }
+        }}
+        type="button"
+      >
         {objectUrl ? (
           <Image
-            alt={photo.caption ?? photo.fileName}
+            alt={photoLabel}
             className="object-cover"
             fill
             sizes="(max-width: 640px) 50vw, 320px"
@@ -181,15 +210,50 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
             <ImageIcon aria-hidden="true" className="size-6 text-muted-foreground" />
           </div>
         )}
-      </div>
+      </button>
       <div className="space-y-1 p-3">
         <p className="truncate text-sm font-medium">
-          {photo.caption ?? photo.fileName}
+          {photoLabel}
         </p>
         <p className="text-xs font-medium text-muted-foreground">
           {getPhotoUploadStatusLabel(photo.uploadStatus)}
         </p>
       </div>
+
+      {isExpanded && objectUrl ? (
+        <div
+          aria-label="Photo agrandie"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex flex-col bg-black text-white"
+          role="dialog"
+        >
+          <div className="flex items-center justify-between gap-3 p-3">
+            <p className="min-w-0 truncate text-sm font-medium">{photoLabel}</p>
+            <Button
+              aria-label="Fermer l'aperçu photo"
+              className="shrink-0 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              onClick={() => {
+                setIsExpanded(false);
+              }}
+              size="icon"
+              type="button"
+              variant="outline"
+            >
+              <X aria-hidden="true" className="size-5" />
+            </Button>
+          </div>
+          <div className="relative min-h-0 flex-1">
+            <Image
+              alt={photoLabel}
+              className="object-contain"
+              fill
+              sizes="100vw"
+              src={objectUrl}
+              unoptimized
+            />
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
