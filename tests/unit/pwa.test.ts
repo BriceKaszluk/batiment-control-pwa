@@ -61,6 +61,16 @@ describe("PWA foundation", () => {
     expect(serviceWorker).toContain("/icons/maskable-icon-512.png");
   });
 
+  it("keeps installability assets public at the middleware layer", async () => {
+    const middleware = await readFile(
+      path.join(projectRoot, "middleware.ts"),
+      "utf8",
+    );
+
+    expect(middleware).toContain("manifest.webmanifest");
+    expect(middleware).toContain("sw.js");
+  });
+
   it("cleans stale PWA registrations and caches during development", async () => {
     const serviceWorkerRegister = await readFile(
       path.join(projectRoot, "components/pwa/service-worker-register.tsx"),
