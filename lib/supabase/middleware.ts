@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicConfig } from "@/lib/supabase/config";
 import type { Database } from "@/types/supabase";
 
-const AUTH_ROUTES = ["/login", "/auth"];
+const AUTH_ROUTES = ["/login", "/signup", "/auth"];
 
 export async function updateSession(request: NextRequest) {
   const config = getSupabasePublicConfig();
@@ -54,7 +54,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && pathname === "/login") {
+  if (user && (pathname === "/login" || pathname === "/signup")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
 
