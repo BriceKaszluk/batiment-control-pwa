@@ -14,6 +14,7 @@ import {
 import type {
   Agent,
   Building,
+  BuildingSector,
   ChecklistItem,
   ChecklistResult,
   Control,
@@ -61,6 +62,7 @@ export function createSupabaseRemotePullAdapter(
         organizationRows,
         agentRows,
         buildingRows,
+        buildingSectorRows,
         checklistItemRows,
         controlRows,
         checklistResultRows,
@@ -69,6 +71,7 @@ export function createSupabaseRemotePullAdapter(
         fetchOrganizations(client, organizationIds),
         fetchAgents(client, organizationIds),
         fetchBuildings(client, organizationIds),
+        fetchBuildingSectors(client, organizationIds),
         fetchChecklistItems(client, organizationIds),
         fetchControls(client, organizationIds),
         fetchChecklistResults(client, organizationIds),
@@ -78,6 +81,7 @@ export function createSupabaseRemotePullAdapter(
       return {
         agents: agentRows.map(toAgent),
         buildings: buildingRows.map(toBuilding),
+        buildingSectors: buildingSectorRows.map(toBuildingSector),
         checklistItems: checklistItemRows.map(toChecklistItem),
         checklistResults: checklistResultRows.map(toChecklistResult),
         controls: controlRows.map(toControl),
@@ -146,6 +150,20 @@ export function toBuilding(row: PublicTables["buildings"]["Row"]): Building {
     priorityLevel: buildingPriorityLevelSchema.parse(row.priority_level),
     sector: row.sector,
     serviceDays: z.array(buildingServiceDaySchema).parse(row.service_days),
+    updatedAt: row.updated_at,
+  };
+}
+
+export function toBuildingSector(
+  row: PublicTables["building_sectors"]["Row"],
+): BuildingSector {
+  return {
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    deletedAt: row.deleted_at,
+    id: row.id,
+    name: row.name,
+    organizationId: row.organization_id,
     updatedAt: row.updated_at,
   };
 }
@@ -240,6 +258,19 @@ async function fetchBuildings(
 ) {
   const { data, error } = await client
     .from("buildings")
+    .select("*")
+    .in("organization_id", organizationIds);
+  throwIfSupabaseError(error);
+
+  return data ?? [];
+}
+
+async function fetchBuildingSectors(
+  client: BrowserSupabaseClient,
+  organizationIds: string[],
+) {
+  const { data, error } = await client
+    .from("building_sectors")
     .select("*")
     .in("organization_id", organizationIds);
   throwIfSupabaseError(error);

@@ -5,6 +5,7 @@ import Dexie, { type Table } from "dexie";
 import type {
   Agent,
   Building,
+  BuildingSector,
   ChecklistItem,
   ChecklistResult,
   Control,
@@ -71,9 +72,16 @@ const versionSevenStores = {
     "&id, organizationId, assignedAgentId, deletedAt, updatedAt, priorityLevel, [organizationId+deletedAt], [organizationId+priorityLevel], [organizationId+assignedAgentId]",
 };
 
+const versionEightStores = {
+  ...versionSevenStores,
+  buildingSectors:
+    "&id, organizationId, name, deletedAt, updatedAt, [organizationId+deletedAt]",
+};
+
 export class BatimentControlDatabase extends Dexie {
   agents!: Table<Agent, string>;
   buildings!: Table<Building, string>;
+  buildingSectors!: Table<BuildingSector, string>;
   checklistItems!: Table<ChecklistItem, string>;
   checklistResults!: Table<ChecklistResult, string>;
   controls!: Table<Control, string>;
@@ -180,5 +188,6 @@ export class BatimentControlDatabase extends Dexie {
                 : null;
           }),
       );
+    this.version(8).stores(versionEightStores);
   }
 }

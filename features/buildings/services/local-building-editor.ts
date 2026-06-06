@@ -4,6 +4,7 @@ import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import { saveLocalMutation } from "@/lib/sync/local-mutation";
 import { buildingCreateSchema, buildingSchema } from "@/lib/validation/schemas";
+import { ensureBuildingSector } from "@/features/buildings/services/local-sectors";
 import type { Agent } from "@/types/domain";
 import type { Building, BuildingCreateInput } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
@@ -70,9 +71,17 @@ export async function createBuilding({
     throw new Error("Organisation locale non autorisee.");
   }
 
+  const parsedBuildingInput = buildingCreateSchema.parse(input);
+  await ensureBuildingSector({
+    database,
+    name: parsedBuildingInput.sector,
+    organizationId,
+    userId,
+  });
+
   const parsedInput = await enrichBuildingInputWithAgent({
     database,
-    input: buildingCreateSchema.parse(input),
+    input: parsedBuildingInput,
     organizationId,
   });
   const timestamp = now();
@@ -137,9 +146,17 @@ export async function updateBuilding({
     throw new Error("Organisation locale non autorisee.");
   }
 
+  const parsedBuildingInput = buildingCreateSchema.parse(input);
+  await ensureBuildingSector({
+    database,
+    name: parsedBuildingInput.sector,
+    organizationId: existingBuilding.organizationId,
+    userId,
+  });
+
   const parsedInput = await enrichBuildingInputWithAgent({
     database,
-    input: buildingCreateSchema.parse(input),
+    input: parsedBuildingInput,
     organizationId: existingBuilding.organizationId,
   });
   const timestamp = now();

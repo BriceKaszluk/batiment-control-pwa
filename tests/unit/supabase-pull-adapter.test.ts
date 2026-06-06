@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   toAgent,
   toBuilding,
+  toBuildingSector,
   toChecklistResult,
   toOrganization,
   toOrganizationMember,
@@ -114,6 +115,28 @@ describe("Supabase pull adapter", () => {
       priorityLevel: "high",
       sector: "Secteur Nord",
       serviceDays: [],
+      updatedAt: now,
+    });
+  });
+
+  it("maps remote building sectors to local domain records", () => {
+    const row: PublicTables["building_sectors"]["Row"] = {
+      created_at: now,
+      created_by: userId,
+      deleted_at: null,
+      id: "88888888-8888-4888-8888-888888888888",
+      name: "Secteur Nord",
+      organization_id: organizationId,
+      updated_at: now,
+    };
+
+    expect(toBuildingSector(row)).toEqual({
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: row.id,
+      name: "Secteur Nord",
+      organizationId,
       updatedAt: now,
     });
   });

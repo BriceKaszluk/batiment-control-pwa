@@ -9,6 +9,7 @@ import { shouldUseIncomingVersion } from "@/lib/sync/conflicts";
 import {
   agentSchema,
   buildingSchema,
+  buildingSectorSchema,
   checklistItemSchema,
   checklistResultSchema,
   controlSchema,
@@ -19,6 +20,7 @@ import {
 import type {
   Agent,
   Building,
+  BuildingSector,
   ChecklistItem,
   ChecklistResult,
   Control,
@@ -30,6 +32,7 @@ import type {
 export type RemoteSnapshot = {
   agents: Agent[];
   buildings: Building[];
+  buildingSectors: BuildingSector[];
   checklistItems: ChecklistItem[];
   checklistResults: ChecklistResult[];
   controls: Control[];
@@ -47,6 +50,7 @@ export function createEmptyRemoteSnapshot(): RemoteSnapshot {
   return {
     agents: [],
     buildings: [],
+    buildingSectors: [],
     checklistItems: [],
     checklistResults: [],
     controls: [],
@@ -67,6 +71,7 @@ export async function saveRemoteSnapshot(
       database.organizationMembers,
       database.agents,
       database.buildings,
+      database.buildingSectors,
       database.checklistItems,
       database.controls,
       database.checklistResults,
@@ -91,6 +96,11 @@ export async function saveRemoteSnapshot(
         database.buildings,
         buildingSchema,
         snapshot.buildings,
+      );
+      await putVersionedRecords(
+        database.buildingSectors,
+        buildingSectorSchema,
+        snapshot.buildingSectors,
       );
       await putVersionedRecords(
         database.checklistItems,

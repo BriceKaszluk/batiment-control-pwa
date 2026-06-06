@@ -8,6 +8,7 @@ import { createOrganizationScopedRepository } from "@/lib/db/repositories/organi
 import {
   agentSchema,
   buildingSchema,
+  buildingSectorSchema,
   checklistItemSchema,
   checklistResultSchema,
   controlSchema,
@@ -20,6 +21,10 @@ export function createRepositories(database: BatimentControlDatabase = db) {
     buildings: createOrganizationScopedRepository(
       database.buildings,
       buildingSchema,
+    ),
+    buildingSectors: createOrganizationScopedRepository(
+      database.buildingSectors,
+      buildingSectorSchema,
     ),
     checklistItems: createOrganizationScopedRepository(
       database.checklistItems,

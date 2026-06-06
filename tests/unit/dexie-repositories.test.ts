@@ -4,7 +4,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createRepositories } from "@/lib/db/repositories";
 import { BatimentControlDatabase } from "@/lib/db/schema";
-import type { Agent, Building, Organization, OrganizationMember } from "@/types/domain";
+import type {
+  Agent,
+  Building,
+  BuildingSector,
+  Organization,
+  OrganizationMember,
+} from "@/types/domain";
 
 const now = "2026-05-31T00:00:00.000Z";
 const organizationId = "11111111-1111-4111-8111-111111111111";
@@ -41,6 +47,16 @@ const agent: Agent = {
   name: "Agent A",
   organizationId,
   status: "present",
+  updatedAt: now,
+};
+
+const buildingSector: BuildingSector = {
+  createdAt: now,
+  createdBy: userId,
+  deletedAt: null,
+  id: "55555555-5555-4555-8555-555555555555",
+  name: "Secteur Nord",
+  organizationId,
   updatedAt: now,
 };
 
@@ -81,6 +97,7 @@ describe("Dexie repositories", () => {
   it("declares the expected local tables", () => {
     expect(database.tables.map((table) => table.name).sort()).toEqual([
       "agents",
+      "buildingSectors",
       "buildings",
       "checklistItems",
       "checklistResults",
@@ -98,8 +115,12 @@ describe("Dexie repositories", () => {
     await repositories.organizations.saveSynced(organization);
     await repositories.agents.saveSynced(agent);
     await repositories.buildings.saveSynced(building);
+    await repositories.buildingSectors.saveSynced(buildingSector);
 
     await expect(repositories.agents.getById(agent.id)).resolves.toEqual(agent);
+    await expect(
+      repositories.buildingSectors.getById(buildingSector.id),
+    ).resolves.toEqual(buildingSector);
     await expect(repositories.buildings.getById(buildingId)).resolves.toEqual(
       building,
     );

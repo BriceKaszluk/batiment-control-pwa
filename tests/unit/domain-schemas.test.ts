@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   agentSchema,
   buildingSchema,
+  buildingSectorSchema,
   controlPhotoSchema,
   controlSchema,
   correctiveActionSchema,
@@ -26,6 +27,20 @@ describe("domain schemas", () => {
       name: "Agent A",
       organizationId,
       status: "present",
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a valid building sector", () => {
+    const result = buildingSectorSchema.safeParse({
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: "88888888-8888-4888-8888-888888888888",
+      name: "Secteur Nord",
+      organizationId,
       updatedAt: now,
     });
 

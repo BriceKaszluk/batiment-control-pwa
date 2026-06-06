@@ -3,12 +3,13 @@
 import { AlertTriangle, Loader2, Save, Trash2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { useLocalAgents } from "@/features/agents/hooks/use-local-agents";
 import { getAgentStatusLabel } from "@/features/agents/services/agent-labels";
+import { useLocalSectors } from "@/features/buildings/hooks/use-local-sectors";
 import { useUserOrganizations } from "@/features/buildings/hooks/use-user-organizations";
 import {
   buildingAreas,
@@ -73,11 +74,16 @@ const areaLabels: Record<(typeof buildingAreas)[number], string> = {
 
 export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormProps>) {
   const router = useRouter();
+  const sectorOptionsId = useId();
   const organizationsState = useUserOrganizations(userId);
 
   const isEdit = mode === "edit";
   const [organizationId, setOrganizationId] = useState<string>("");
   const agentsState = useLocalAgents({
+    organizationId: organizationId || undefined,
+    userId,
+  });
+  const sectorsState = useLocalSectors({
     organizationId: organizationId || undefined,
     userId,
   });
@@ -95,6 +101,8 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [sectorError, setSectorError] = useState<string | null>(null);
+  const [deletingSectorId, setDeletingSectorId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -142,6 +150,41 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
   function normalizeOptionalText(value: string) {
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  function handleDeleteSector(sectorId: string, sectorName: string) {
+    setSectorError(null);
+
+    if (!userId) {
+      setSectorError("Utilisateur requis.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Supprimer le secteur "${sectorName}" de la liste ? Les batiments existants gardent leur secteur.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingSectorId(sectorId);
+
+    void import("@/features/buildings/services/local-sectors")
+      .then((localSectorsModule) =>
+        localSectorsModule.deleteBuildingSector({
+          sectorId,
+          userId,
+        }),
+      )
+      .catch((error: unknown) => {
+        setSectorError(
+          error instanceof Error ? error.message : "Suppression impossible",
+        );
+      })
+      .finally(() => {
+        setDeletingSectorId(null);
+      });
   }
 
   function collectFieldErrors(
@@ -234,15 +277,83 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
           <span>Secteur</span>
           <input
             className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+            list={sectorOptionsId}
             onChange={(event) => {
               setSector(event.target.value);
             }}
             value={sector}
           />
+          <datalist id={sectorOptionsId}>
+            {sectorsState.sectors.map((savedSector) => (
+              <option key={savedSector.id} value={savedSector.name} />
+            ))}
+          </datalist>
           {fieldErrors.sector ? (
             <p className="text-sm font-medium text-red-700">{fieldErrors.sector}</p>
           ) : null}
         </label>
+
+        {sectorsState.isLoading ? (
+          <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            Chargement des secteurs
+          </div>
+        ) : null}
+
+        {sectorsState.error || sectorError ? (
+          <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            {sectorError ?? "Secteurs locaux indisponibles"}
+          </div>
+        ) : null}
+
+        {!sectorsState.isLoading &&
+        !sectorsState.error &&
+        sectorsState.sectors.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">
+              Secteurs enregistres
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {sectorsState.sectors.map((savedSector) => (
+                <div
+                  className="inline-flex max-w-full items-center rounded-md border bg-muted"
+                  key={savedSector.id}
+                >
+                  <button
+                    className="min-h-9 max-w-[12rem] truncate px-3 text-sm font-medium"
+                    onClick={() => {
+                      setSector(savedSector.name);
+                    }}
+                    type="button"
+                  >
+                    {savedSector.name}
+                  </button>
+                  <Button
+                    aria-label={`Supprimer le secteur ${savedSector.name}`}
+                    className="size-9 shrink-0 rounded-l-none border-y-0 border-r-0"
+                    disabled={deletingSectorId === savedSector.id}
+                    onClick={() => {
+                      handleDeleteSector(savedSector.id, savedSector.name);
+                    }}
+                    size="icon"
+                    type="button"
+                    variant="outline"
+                  >
+                    {deletingSectorId === savedSector.id ? (
+                      <Loader2
+                        aria-hidden="true"
+                        className="size-4 animate-spin"
+                      />
+                    ) : (
+                      <Trash2 aria-hidden="true" className="size-4" />
+                    )}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">

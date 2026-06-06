@@ -108,6 +108,9 @@ describe("local building editor", () => {
       updatedAt: now,
     });
     await expect(database.buildings.get(buildingId)).resolves.toEqual(result.record);
+    await expect(
+      database.buildingSectors.where("name").equals("Secteur Nord").count(),
+    ).resolves.toBe(1);
     await expect(database.outbox.get(operationId)).resolves.toMatchObject({
       aggregateId: buildingId,
       entity: "buildings",

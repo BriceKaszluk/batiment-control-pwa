@@ -6,7 +6,13 @@ import {
   controlPhotoStorageBucket,
   toControlPhotoInsert,
 } from "@/lib/sync/supabase-photo-upload-adapter";
-import type { Agent, Building, ChecklistResult, ControlPhoto } from "@/types/domain";
+import type {
+  Agent,
+  Building,
+  BuildingSector,
+  ChecklistResult,
+  ControlPhoto,
+} from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
 
 const now = "2026-05-31T00:00:00.000Z";
@@ -124,6 +130,39 @@ describe("Supabase sync adapter", () => {
         updated_at: now,
       },
       table: "buildings",
+    });
+  });
+
+  it("maps building sector payloads to Supabase insert rows", () => {
+    const buildingSector: BuildingSector = {
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: "66666666-6666-4666-8666-666666666666",
+      name: "Secteur Nord",
+      organizationId,
+      updatedAt: now,
+    };
+
+    expect(
+      toSupabaseMutation(
+        createOperation({
+          aggregateId: buildingSector.id,
+          entity: "buildingSectors",
+          payload: buildingSector,
+        }),
+      ),
+    ).toEqual({
+      row: {
+        created_at: now,
+        created_by: userId,
+        deleted_at: null,
+        id: buildingSector.id,
+        name: "Secteur Nord",
+        organization_id: organizationId,
+        updated_at: now,
+      },
+      table: "building_sectors",
     });
   });
 

@@ -22,6 +22,10 @@ const agentsMigration = readFileSync(
   "supabase/migrations/20260606100000_add_agents.sql",
   "utf8",
 );
+const buildingSectorsMigration = readFileSync(
+  "supabase/migrations/20260606110000_add_building_sectors.sql",
+  "utf8",
+);
 
 const publicTables = [
   "organizations",
@@ -146,5 +150,31 @@ describe("agents Supabase migration", () => {
     );
     expect(agentsMigration).toContain("created_by = (select auth.uid())");
     expect(agentsMigration).not.toContain("service_role");
+  });
+});
+
+describe("building sectors Supabase migration", () => {
+  it("creates the building sectors table", () => {
+    expect(buildingSectorsMigration).toContain(
+      "create table public.building_sectors",
+    );
+    expect(buildingSectorsMigration).toContain("name text not null");
+    expect(buildingSectorsMigration).toContain("created_by uuid not null");
+    expect(buildingSectorsMigration).not.toContain("service_role");
+  });
+
+  it("enables forced RLS and authenticated policies for building sectors", () => {
+    expect(buildingSectorsMigration).toContain(
+      "alter table public.building_sectors enable row level security;",
+    );
+    expect(buildingSectorsMigration).toContain(
+      "alter table public.building_sectors force row level security;",
+    );
+    expect(buildingSectorsMigration).toMatch(
+      /create policy "[^"]+"\s+on public\.building_sectors\s+[\s\S]+?to authenticated/i,
+    );
+    expect(buildingSectorsMigration).toContain(
+      "created_by = (select auth.uid())",
+    );
   });
 });

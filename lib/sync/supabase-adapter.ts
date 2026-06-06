@@ -7,6 +7,7 @@ import type { RemoteSyncAdapter } from "@/lib/sync/sync-engine";
 import {
   agentSchema,
   buildingSchema,
+  buildingSectorSchema,
   checklistItemSchema,
   checklistResultSchema,
   controlSchema,
@@ -15,6 +16,7 @@ import {
 import type {
   Agent,
   Building,
+  BuildingSector,
   ChecklistItem,
   ChecklistResult,
   Control,
@@ -28,6 +30,7 @@ type PublicTables = Database["public"]["Tables"];
 type SupabaseMutation =
   | { row: PublicTables["agents"]["Insert"]; table: "agents" }
   | { row: PublicTables["buildings"]["Insert"]; table: "buildings" }
+  | { row: PublicTables["building_sectors"]["Insert"]; table: "building_sectors" }
   | { row: PublicTables["checklist_items"]["Insert"]; table: "checklist_items" }
   | { row: PublicTables["control_checklist_results"]["Insert"]; table: "control_checklist_results" }
   | { row: PublicTables["controls"]["Insert"]; table: "controls" }
@@ -56,6 +59,13 @@ export function toSupabaseMutation(operation: OutboxOperation): SupabaseMutation
       return {
         row: toBuildingInsert(buildingSchema.parse(operation.payload)),
         table: "buildings",
+      };
+    case "buildingSectors":
+      return {
+        row: toBuildingSectorInsert(
+          buildingSectorSchema.parse(operation.payload),
+        ),
+        table: "building_sectors",
       };
     case "checklistItems":
       return {
@@ -101,6 +111,13 @@ async function pushOutboxOperation(
     case "buildings": {
       const { error } = await client
         .from("buildings")
+        .upsert(mutation.row, { onConflict: "id" });
+      throwIfSupabaseError(error);
+      return;
+    }
+    case "building_sectors": {
+      const { error } = await client
+        .from("building_sectors")
         .upsert(mutation.row, { onConflict: "id" });
       throwIfSupabaseError(error);
       return;
@@ -169,6 +186,20 @@ function toBuildingInsert(building: Building): PublicTables["buildings"]["Insert
     sector: building.sector,
     service_days: building.serviceDays,
     updated_at: building.updatedAt,
+  };
+}
+
+function toBuildingSectorInsert(
+  sector: BuildingSector,
+): PublicTables["building_sectors"]["Insert"] {
+  return {
+    created_at: sector.createdAt,
+    created_by: sector.createdBy,
+    deleted_at: sector.deletedAt,
+    id: sector.id,
+    name: sector.name,
+    organization_id: sector.organizationId,
+    updated_at: sector.updatedAt,
   };
 }
 

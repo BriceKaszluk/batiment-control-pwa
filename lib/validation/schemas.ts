@@ -123,6 +123,18 @@ export const agentSchema = z
   })
   .strict();
 
+export const buildingSectorSchema = z
+  .object({
+    createdAt: isoDateTimeSchema,
+    createdBy: uuidSchema,
+    deletedAt: isoDateTimeSchema.nullable(),
+    id: uuidSchema,
+    name: z.string().trim().min(1).max(160),
+    organizationId: uuidSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
 export const buildingSchema = z
   .object({
     address: z.string().trim().min(1).max(240),
@@ -296,6 +308,12 @@ export const agentCreateSchema = agentSchema
   .pick({
     name: true,
     status: true,
+  })
+  .strict();
+
+export const buildingSectorCreateSchema = buildingSectorSchema
+  .pick({
+    name: true,
   })
   .strict();
 

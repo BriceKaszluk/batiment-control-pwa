@@ -4,7 +4,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { BatimentControlDatabase } from "@/lib/db/schema";
 import { saveRemoteSnapshot, type RemoteSnapshot } from "@/lib/sync/remote-snapshot";
-import type { Agent, Building, Organization, OrganizationMember } from "@/types/domain";
+import type {
+  Agent,
+  Building,
+  BuildingSector,
+  Organization,
+  OrganizationMember,
+} from "@/types/domain";
 
 const older = "2026-05-31T00:00:00.000Z";
 const newer = "2026-05-31T01:00:00.000Z";
@@ -24,6 +30,7 @@ function createSnapshot(
   return {
     agents: [],
     buildings: [],
+    buildingSectors: [],
     checklistItems: [],
     checklistResults: [],
     controls: [],
@@ -58,6 +65,16 @@ const agent: Agent = {
   name: "Agent A",
   organizationId,
   status: "present",
+  updatedAt: older,
+};
+
+const buildingSector: BuildingSector = {
+  createdAt: older,
+  createdBy: userId,
+  deletedAt: null,
+  id: "99999999-9999-4999-8999-999999999999",
+  name: "Secteur Nord",
+  organizationId,
   updatedAt: older,
 };
 
@@ -119,6 +136,19 @@ describe("remote snapshot import", () => {
     );
 
     await expect(database.agents.get(agent.id)).resolves.toEqual(agent);
+  });
+
+  it("saves remote building sectors locally", async () => {
+    await saveRemoteSnapshot(
+      createSnapshot({
+        buildingSectors: [buildingSector],
+      }),
+      database,
+    );
+
+    await expect(database.buildingSectors.get(buildingSector.id)).resolves.toEqual(
+      buildingSector,
+    );
   });
 
   it("keeps a newer local version instead of overwriting it", async () => {

@@ -4,6 +4,8 @@ import type {
   agentCreateSchema,
   agentSchema,
   buildingCreateSchema,
+  buildingSectorCreateSchema,
+  buildingSectorSchema,
   buildingSchema,
   checklistItemSchema,
   checklistResultSchema,
@@ -19,6 +21,10 @@ import type {
 
 export type Agent = z.infer<typeof agentSchema>;
 export type AgentCreateInput = z.infer<typeof agentCreateSchema>;
+export type BuildingSector = z.infer<typeof buildingSectorSchema>;
+export type BuildingSectorCreateInput = z.infer<
+  typeof buildingSectorCreateSchema
+>;
 export type Organization = z.infer<typeof organizationSchema>;
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
 export type Building = z.infer<typeof buildingSchema>;
