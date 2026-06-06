@@ -1,6 +1,14 @@
 "use client";
 
-import { AlertTriangle, Loader2, Plus, Save, UserRound } from "lucide-react";
+import {
+  AlertTriangle,
+  Loader2,
+  Pencil,
+  Plus,
+  Save,
+  UserRound,
+  X,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { z } from "zod";
@@ -219,6 +227,7 @@ type AgentEditorProps = {
 };
 
 function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
+  const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(agent.name);
   const [status, setStatus] = useState<AgentStatus>(agent.status);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -267,6 +276,11 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
           userId,
         });
       })
+      .then((result) => {
+        if (result !== null) {
+          setIsEditing(false);
+        }
+      })
       .catch((error: unknown) => {
         setFormError(
           error instanceof Error ? error.message : "Sauvegarde impossible",
@@ -294,58 +308,94 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
             {getAgentStatusLabel(status)}
           </span>
         </div>
+        {!isEditing ? (
+          <Button
+            className="h-10 shrink-0 px-3"
+            onClick={() => {
+              setIsEditing(true);
+            }}
+            type="button"
+            variant="outline"
+          >
+            <Pencil aria-hidden="true" className="size-4" />
+            Modifier
+          </Button>
+        ) : null}
       </div>
 
-      {formError ? <FeedbackBox tone="error">{formError}</FeedbackBox> : null}
+      {isEditing ? (
+        <>
+          {formError ? <FeedbackBox tone="error">{formError}</FeedbackBox> : null}
 
-      <label className="block space-y-2 text-sm font-medium">
-        <span>Nom</span>
-        <input
-          className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-          onChange={(event) => {
-            setName(event.target.value);
-          }}
-          value={name}
-        />
-        {fieldErrors.name ? (
-          <p className="text-sm font-medium text-red-700">{fieldErrors.name}</p>
-        ) : null}
-      </label>
+          <label className="block space-y-2 text-sm font-medium">
+            <span>Nom</span>
+            <input
+              className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+              onChange={(event) => {
+                setName(event.target.value);
+              }}
+              value={name}
+            />
+            {fieldErrors.name ? (
+              <p className="text-sm font-medium text-red-700">{fieldErrors.name}</p>
+            ) : null}
+          </label>
 
-      <label className="block space-y-2 text-sm font-medium">
-        <span>Statut</span>
-        <select
-          className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-          onChange={(event) => {
-            setStatus(event.target.value as AgentStatus);
-          }}
-          value={status}
-        >
-          {agentStatuses.map((agentStatus) => (
-            <option key={agentStatus} value={agentStatus}>
-              {getAgentStatusLabel(agentStatus)}
-            </option>
-          ))}
-        </select>
-        {fieldErrors.status ? (
-          <p className="text-sm font-medium text-red-700">{fieldErrors.status}</p>
-        ) : null}
-      </label>
+          <label className="block space-y-2 text-sm font-medium">
+            <span>Statut</span>
+            <select
+              className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+              onChange={(event) => {
+                setStatus(event.target.value as AgentStatus);
+              }}
+              value={status}
+            >
+              {agentStatuses.map((agentStatus) => (
+                <option key={agentStatus} value={agentStatus}>
+                  {getAgentStatusLabel(agentStatus)}
+                </option>
+              ))}
+            </select>
+            {fieldErrors.status ? (
+              <p className="text-sm font-medium text-red-700">
+                {fieldErrors.status}
+              </p>
+            ) : null}
+          </label>
 
-      <Button
-        className="h-11 w-full"
-        disabled={!userId || !hasChanges || isSaving}
-        onClick={handleSaveAgent}
-        type="button"
-        variant="outline"
-      >
-        {isSaving ? (
-          <Loader2 aria-hidden="true" className="size-4 animate-spin" />
-        ) : (
-          <Save aria-hidden="true" className="size-4" />
-        )}
-        Enregistrer
-      </Button>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              className="h-11"
+              disabled={!userId || !hasChanges || isSaving}
+              onClick={handleSaveAgent}
+              type="button"
+            >
+              {isSaving ? (
+                <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+              ) : (
+                <Save aria-hidden="true" className="size-4" />
+              )}
+              Enregistrer
+            </Button>
+            <Button
+              className="h-11"
+              disabled={isSaving}
+              onClick={() => {
+                setName(agent.name);
+                setStatus(agent.status);
+                setFieldErrors({});
+                setFormError(null);
+                setIsEditing(false);
+              }}
+              type="button"
+              variant="outline"
+            >
+              <X aria-hidden="true" className="size-4" />
+              Annuler
+            </Button>
+          </div>
+        </>
+      ) : null}
     </article>
   );
 }
