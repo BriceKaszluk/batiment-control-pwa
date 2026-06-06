@@ -8,7 +8,7 @@ import {
   updateBuilding,
 } from "@/features/buildings/services/local-building-editor";
 import { BatimentControlDatabase } from "@/lib/db/schema";
-import type { OrganizationMember } from "@/types/domain";
+import type { Agent, OrganizationMember } from "@/types/domain";
 
 const now = "2026-05-31T00:00:00.000Z";
 const later = "2026-05-31T01:00:00.000Z";
@@ -48,6 +48,17 @@ const organizationMember: OrganizationMember = {
   userId,
 };
 
+const agent: Agent = {
+  createdAt: now,
+  createdBy: userId,
+  deletedAt: null,
+  id: "99999999-9999-4999-8999-999999999999",
+  name: "Agent A",
+  organizationId,
+  status: "replacement",
+  updatedAt: now,
+};
+
 describe("local building editor", () => {
   let database: BatimentControlDatabase;
 
@@ -69,6 +80,7 @@ describe("local building editor", () => {
         address: "12 rue du Controle",
         agentStatus: "unknown",
         areasToCheck: ["outdoor", "hall"],
+        assignedAgentId: null,
         assignedAgentName: null,
         internalNotes: "Attention local poubelle",
         name: "Batiment A",
@@ -104,6 +116,36 @@ describe("local building editor", () => {
     });
   });
 
+  it("uses the selected local agent snapshot when creating a building", async () => {
+    await database.agents.put(agent);
+
+    const result = await createBuilding({
+      createId: createIdFactory([buildingId, mutationId, operationId]),
+      database,
+      input: {
+        address: "12 rue du Controle",
+        agentStatus: "unknown",
+        areasToCheck: [],
+        assignedAgentId: agent.id,
+        assignedAgentName: null,
+        internalNotes: null,
+        name: "Batiment A",
+        priorityLevel: "normal",
+        sector: "Secteur Nord",
+        serviceDays: [],
+      },
+      now: () => now,
+      organizationId,
+      userId,
+    });
+
+    expect(result.record).toMatchObject({
+      agentStatus: "replacement",
+      assignedAgentId: agent.id,
+      assignedAgentName: "Agent A",
+    });
+  });
+
   it("updates a building locally and enqueues an outbox operation", async () => {
     await createBuilding({
       createId: createIdFactory([buildingId, mutationId, operationId]),
@@ -112,6 +154,7 @@ describe("local building editor", () => {
         address: "12 rue du Controle",
         agentStatus: "unknown",
         areasToCheck: [],
+        assignedAgentId: null,
         assignedAgentName: null,
         internalNotes: null,
         name: "Batiment A",
@@ -132,6 +175,7 @@ describe("local building editor", () => {
         address: "12 rue du Controle",
         agentStatus: "present",
         areasToCheck: ["common_areas"],
+        assignedAgentId: null,
         assignedAgentName: "Agent B",
         internalNotes: null,
         name: "Batiment A (modifie)",
@@ -145,6 +189,7 @@ describe("local building editor", () => {
 
     expect(result.record).toMatchObject({
       agentStatus: "present",
+      assignedAgentId: null,
       assignedAgentName: "Agent B",
       name: "Batiment A (modifie)",
       priorityLevel: "high",
@@ -166,6 +211,7 @@ describe("local building editor", () => {
         address: "12 rue du Controle",
         agentStatus: "unknown",
         areasToCheck: [],
+        assignedAgentId: null,
         assignedAgentName: null,
         internalNotes: null,
         name: "Batiment A",

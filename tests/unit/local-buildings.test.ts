@@ -5,9 +5,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BatimentControlDatabase } from "@/lib/db/schema";
 import {
   getBuildingPriorityLabel,
+  listBuildingEntriesForUser,
   listBuildingsForUser,
 } from "@/features/buildings/services/local-buildings";
-import type { Building, OrganizationMember } from "@/types/domain";
+import type { Agent, Building, OrganizationMember } from "@/types/domain";
 
 const now = "2026-05-31T00:00:00.000Z";
 const older = "2026-05-01T00:00:00.000Z";
@@ -30,6 +31,7 @@ function createBuilding(
     address: "12 rue du Controle",
     agentStatus: "unknown",
     areasToCheck: [],
+    assignedAgentId: null,
     assignedAgentName: null,
     createdAt: now,
     createdBy: userId,
@@ -52,6 +54,17 @@ const organizationMember: OrganizationMember = {
   organizationId,
   role: "team_lead",
   userId,
+};
+
+const agent: Agent = {
+  createdAt: now,
+  createdBy: userId,
+  deletedAt: null,
+  id: "66666666-6666-4666-8666-666666666666",
+  name: "Agent A",
+  organizationId,
+  status: "present",
+  updatedAt: now,
 };
 
 describe("local buildings", () => {
@@ -145,6 +158,46 @@ describe("local buildings", () => {
     ).resolves.toEqual([
       expect.objectContaining({ name: "Premier" }),
       expect.objectContaining({ name: "Deuxieme" }),
+    ]);
+  });
+
+  it("returns the latest assigned agent for building list entries", async () => {
+    const assignedBuilding = createBuilding({
+      assignedAgentId: agent.id,
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "Batiment assigne",
+      priorityLevel: "normal",
+    });
+
+    await database.organizationMembers.put(organizationMember);
+    await database.agents.put(agent);
+    await database.buildings.put(assignedBuilding);
+
+    await expect(
+      listBuildingEntriesForUser({ database, userId }),
+    ).resolves.toEqual([
+      {
+        agent,
+        building: assignedBuilding,
+      },
+    ]);
+
+    await database.agents.put({
+      ...agent,
+      status: "sick_leave",
+      updatedAt: "2026-05-31T01:00:00.000Z",
+    });
+
+    await expect(
+      listBuildingEntriesForUser({ database, userId }),
+    ).resolves.toEqual([
+      {
+        agent: expect.objectContaining({
+          id: agent.id,
+          status: "sick_leave",
+        }),
+        building: assignedBuilding,
+      },
     ]);
   });
 

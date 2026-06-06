@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  toAgent,
   toBuilding,
   toChecklistResult,
   toOrganization,
@@ -16,6 +17,30 @@ const userId = "22222222-2222-4222-8222-222222222222";
 const buildingId = "33333333-3333-4333-8333-333333333333";
 
 describe("Supabase pull adapter", () => {
+  it("maps remote agents to local domain records", () => {
+    const row: PublicTables["agents"]["Row"] = {
+      created_at: now,
+      created_by: userId,
+      deleted_at: null,
+      id: "66666666-6666-4666-8666-666666666666",
+      name: "Agent A",
+      organization_id: organizationId,
+      status: "present",
+      updated_at: now,
+    };
+
+    expect(toAgent(row)).toEqual({
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: row.id,
+      name: "Agent A",
+      organizationId,
+      status: "present",
+      updatedAt: now,
+    });
+  });
+
   it("maps personal workspace organizations", () => {
     const row: PublicTables["organizations"]["Row"] = {
       created_at: now,
@@ -56,6 +81,7 @@ describe("Supabase pull adapter", () => {
     const row: PublicTables["buildings"]["Row"] = {
       agent_status: "unknown",
       areas_to_check: ["entrance_hall", "trash_room", "basement"],
+      assigned_agent_id: null,
       assigned_agent_name: null,
       access_notes: null,
       address: "12 rue du Controle",
@@ -78,6 +104,7 @@ describe("Supabase pull adapter", () => {
       address: "12 rue du Controle",
       agentStatus: "unknown",
       areasToCheck: ["hall", "common_areas", "basement_access"],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,

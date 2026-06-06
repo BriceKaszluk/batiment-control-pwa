@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  agentSchema,
   buildingSchema,
   controlPhotoSchema,
   controlSchema,
@@ -11,10 +12,26 @@ import {
 const organizationId = "11111111-1111-4111-8111-111111111111";
 const userId = "22222222-2222-4222-8222-222222222222";
 const buildingId = "33333333-3333-4333-8333-333333333333";
+const agentId = "77777777-7777-4777-8777-777777777777";
 const controlId = "44444444-4444-4444-8444-444444444444";
 const now = "2026-05-31T00:00:00.000Z";
 
 describe("domain schemas", () => {
+  it("accepts a valid agent", () => {
+    const result = agentSchema.safeParse({
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: agentId,
+      name: "Agent A",
+      organizationId,
+      status: "present",
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it("accepts a personal user workspace", () => {
     const result = organizationSchema.safeParse({
       createdAt: now,
@@ -33,6 +50,7 @@ describe("domain schemas", () => {
       address: "12 rue du Controle",
       agentStatus: "unknown",
       areasToCheck: [],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
@@ -56,6 +74,7 @@ describe("domain schemas", () => {
       address: "12 rue du Controle",
       agentStatus: "unknown",
       areasToCheck: [],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
@@ -79,6 +98,7 @@ describe("domain schemas", () => {
       address: " ",
       agentStatus: "unknown",
       areasToCheck: [],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
@@ -102,6 +122,7 @@ describe("domain schemas", () => {
       address: "12 rue du Controle",
       agentStatus: "unknown",
       areasToCheck: [],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
@@ -125,6 +146,7 @@ describe("domain schemas", () => {
       address: "12 rue du Controle",
       agentStatus: "present",
       areasToCheck: [],
+      assignedAgentId: null,
       assignedAgentName: "Agent A",
       createdAt: now,
       createdBy: userId,
@@ -161,6 +183,7 @@ describe("domain schemas", () => {
       address: "12 rue du Controle",
       agentStatus: "unknown",
       areasToCheck: ["outdoor", "hall", "common_areas", "garage"],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
@@ -184,6 +207,7 @@ describe("domain schemas", () => {
       address: "12 rue du Controle",
       agentStatus: "unknown",
       areasToCheck: ["entrance_hall", "trash_room", "bike_room", "basement"],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
@@ -215,6 +239,7 @@ describe("domain schemas", () => {
       address: "12 rue du Controle",
       agentStatus: "unknown",
       areasToCheck: ["local_inconnu"],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,

@@ -1,6 +1,11 @@
-import { Building2, Clock3, MapPin, Pencil } from "lucide-react";
+import { Building2, Clock3, MapPin, Pencil, UserRound } from "lucide-react";
 import Link from "next/link";
 
+import {
+  getAgentStatusLabel,
+  getAgentStatusTone,
+  type AgentStatusTone,
+} from "@/features/agents/services/agent-labels";
 import {
   getBuildingPriorityLabel,
   getBuildingPriorityTone,
@@ -9,7 +14,7 @@ import {
 import { StartControlButton } from "@/features/controls/components/start-control-button";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Building } from "@/types/domain";
+import type { Agent, Building } from "@/types/domain";
 
 const priorityToneClasses: Record<BuildingPriorityTone, string> = {
   critical: "border-red-300 bg-red-50 text-red-800",
@@ -18,16 +23,27 @@ const priorityToneClasses: Record<BuildingPriorityTone, string> = {
   normal: "border-emerald-200 bg-emerald-50 text-emerald-900",
 };
 
+const agentToneClasses: Record<AgentStatusTone, string> = {
+  available: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  away: "border-amber-200 bg-amber-50 text-amber-900",
+  neutral: "border-slate-200 bg-slate-50 text-slate-700",
+};
+
 type BuildingListItemProps = {
+  agent: Agent | null;
   building: Building;
   userId: string | null;
 };
 
 export function BuildingListItem({
+  agent,
   building,
   userId,
 }: Readonly<BuildingListItemProps>) {
   const priorityTone = getBuildingPriorityTone(building.priorityLevel);
+  const agentStatus = agent?.status ?? building.agentStatus;
+  const agentName = agent?.name ?? building.assignedAgentName;
+  const agentTone = getAgentStatusTone(agentStatus);
 
   return (
     <article className="rounded-md border bg-background p-4 shadow-sm">
@@ -66,6 +82,17 @@ export function BuildingListItem({
           <Clock3 aria-hidden="true" className="size-3.5" />
           {building.lastControlAt ? "Controle deja realise" : "Jamais controle"}
         </span>
+        {agentName ? (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-md border px-2 py-1",
+              agentToneClasses[agentTone],
+            )}
+          >
+            <UserRound aria-hidden="true" className="size-3.5" />
+            {agentName} - {getAgentStatusLabel(agentStatus)}
+          </span>
+        ) : null}
       </div>
       <div className="mt-4">
         <StartControlButton building={building} userId={userId} />

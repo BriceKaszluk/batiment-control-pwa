@@ -6,6 +6,7 @@ import { createOrganizationMemberRepository } from "@/lib/db/repositories/organi
 import { createOrganizationRepository } from "@/lib/db/repositories/organization-repository";
 import { createOrganizationScopedRepository } from "@/lib/db/repositories/organization-scoped-repository";
 import {
+  agentSchema,
   buildingSchema,
   checklistItemSchema,
   checklistResultSchema,
@@ -15,6 +16,7 @@ import {
 
 export function createRepositories(database: BatimentControlDatabase = db) {
   return {
+    agents: createOrganizationScopedRepository(database.agents, agentSchema),
     buildings: createOrganizationScopedRepository(
       database.buildings,
       buildingSchema,

@@ -49,10 +49,44 @@ export type Database = {
       };
     };
     Tables: {
+      agents: {
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          deleted_at?: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          status?: Database["public"]["Enums"]["agent_status"];
+          updated_at?: string;
+        };
+        Relationships: [];
+        Row: {
+          created_at: string;
+          created_by: string;
+          deleted_at: string | null;
+          id: string;
+          name: string;
+          organization_id: string;
+          status: Database["public"]["Enums"]["agent_status"];
+          updated_at: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          deleted_at?: string | null;
+          id?: string;
+          name?: string;
+          organization_id?: string;
+          status?: Database["public"]["Enums"]["agent_status"];
+          updated_at?: string;
+        };
+      };
       buildings: {
         Insert: {
           agent_status?: Database["public"]["Enums"]["agent_status"];
           areas_to_check?: Json;
+          assigned_agent_id?: string | null;
           assigned_agent_name?: string | null;
           access_notes?: string | null;
           address?: string | null;
@@ -74,6 +108,7 @@ export type Database = {
         Row: {
           agent_status: Database["public"]["Enums"]["agent_status"];
           areas_to_check: Json;
+          assigned_agent_id: string | null;
           assigned_agent_name: string | null;
           access_notes: string | null;
           address: string | null;
@@ -94,6 +129,7 @@ export type Database = {
         Update: {
           agent_status?: Database["public"]["Enums"]["agent_status"];
           areas_to_check?: Json;
+          assigned_agent_id?: string | null;
           assigned_agent_name?: string | null;
           access_notes?: string | null;
           address?: string | null;

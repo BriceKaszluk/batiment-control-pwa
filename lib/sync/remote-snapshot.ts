@@ -7,6 +7,7 @@ import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import { shouldUseIncomingVersion } from "@/lib/sync/conflicts";
 import {
+  agentSchema,
   buildingSchema,
   checklistItemSchema,
   checklistResultSchema,
@@ -16,6 +17,7 @@ import {
   organizationSchema,
 } from "@/lib/validation/schemas";
 import type {
+  Agent,
   Building,
   ChecklistItem,
   ChecklistResult,
@@ -26,6 +28,7 @@ import type {
 } from "@/types/domain";
 
 export type RemoteSnapshot = {
+  agents: Agent[];
   buildings: Building[];
   checklistItems: ChecklistItem[];
   checklistResults: ChecklistResult[];
@@ -42,6 +45,7 @@ type VersionedEntity = {
 
 export function createEmptyRemoteSnapshot(): RemoteSnapshot {
   return {
+    agents: [],
     buildings: [],
     checklistItems: [],
     checklistResults: [],
@@ -61,6 +65,7 @@ export async function saveRemoteSnapshot(
     [
       database.organizations,
       database.organizationMembers,
+      database.agents,
       database.buildings,
       database.checklistItems,
       database.controls,
@@ -76,6 +81,11 @@ export async function saveRemoteSnapshot(
       await putOrganizationMembers(
         database.organizationMembers,
         snapshot.organizationMembers,
+      );
+      await putVersionedRecords(
+        database.agents,
+        agentSchema,
+        snapshot.agents,
       );
       await putVersionedRecords(
         database.buildings,

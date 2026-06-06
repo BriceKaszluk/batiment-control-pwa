@@ -12,6 +12,7 @@ import {
   buildingServiceDaySchema,
 } from "@/lib/validation/schemas";
 import type {
+  Agent,
   Building,
   ChecklistItem,
   ChecklistResult,
@@ -58,6 +59,7 @@ export function createSupabaseRemotePullAdapter(
 
       const [
         organizationRows,
+        agentRows,
         buildingRows,
         checklistItemRows,
         controlRows,
@@ -65,6 +67,7 @@ export function createSupabaseRemotePullAdapter(
         correctiveActionRows,
       ] = await Promise.all([
         fetchOrganizations(client, organizationIds),
+        fetchAgents(client, organizationIds),
         fetchBuildings(client, organizationIds),
         fetchChecklistItems(client, organizationIds),
         fetchControls(client, organizationIds),
@@ -73,6 +76,7 @@ export function createSupabaseRemotePullAdapter(
       ]);
 
       return {
+        agents: agentRows.map(toAgent),
         buildings: buildingRows.map(toBuilding),
         checklistItems: checklistItemRows.map(toChecklistItem),
         checklistResults: checklistResultRows.map(toChecklistResult),
@@ -82,6 +86,19 @@ export function createSupabaseRemotePullAdapter(
         organizations: organizationRows.map(toOrganization),
       };
     },
+  };
+}
+
+export function toAgent(row: PublicTables["agents"]["Row"]): Agent {
+  return {
+    createdAt: row.created_at,
+    createdBy: row.created_by,
+    deletedAt: row.deleted_at,
+    id: row.id,
+    name: row.name,
+    organizationId: row.organization_id,
+    status: row.status,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -116,6 +133,7 @@ export function toBuilding(row: PublicTables["buildings"]["Row"]): Building {
     areasToCheck: z
       .array(buildingAreaSchema)
       .parse(normalizeBuildingAreaList(row.areas_to_check)),
+    assignedAgentId: row.assigned_agent_id,
     assignedAgentName: row.assigned_agent_name,
     createdAt: row.created_at,
     createdBy: row.created_by,
@@ -222,6 +240,19 @@ async function fetchBuildings(
 ) {
   const { data, error } = await client
     .from("buildings")
+    .select("*")
+    .in("organization_id", organizationIds);
+  throwIfSupabaseError(error);
+
+  return data ?? [];
+}
+
+async function fetchAgents(
+  client: BrowserSupabaseClient,
+  organizationIds: string[],
+) {
+  const { data, error } = await client
+    .from("agents")
     .select("*")
     .in("organization_id", organizationIds);
   throwIfSupabaseError(error);

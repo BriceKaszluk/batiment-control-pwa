@@ -3,6 +3,7 @@
 import Dexie, { type Table } from "dexie";
 
 import type {
+  Agent,
   Building,
   ChecklistItem,
   ChecklistResult,
@@ -62,7 +63,16 @@ const versionSixStores = {
   ...versionFiveStores,
 };
 
+const versionSevenStores = {
+  ...versionSixStores,
+  agents:
+    "&id, organizationId, status, deletedAt, updatedAt, [organizationId+deletedAt], [organizationId+status]",
+  buildings:
+    "&id, organizationId, assignedAgentId, deletedAt, updatedAt, priorityLevel, [organizationId+deletedAt], [organizationId+priorityLevel], [organizationId+assignedAgentId]",
+};
+
 export class BatimentControlDatabase extends Dexie {
+  agents!: Table<Agent, string>;
   buildings!: Table<Building, string>;
   checklistItems!: Table<ChecklistItem, string>;
   checklistResults!: Table<ChecklistResult, string>;
@@ -153,6 +163,21 @@ export class BatimentControlDatabase extends Dexie {
             record.areasToCheck = normalizeBuildingAreaList(
               record.areasToCheck,
             );
+          }),
+      );
+    this.version(7)
+      .stores(versionSevenStores)
+      .upgrade((tx) =>
+        tx
+          .table("buildings")
+          .toCollection()
+          .modify((building) => {
+            const record = building as Record<string, unknown>;
+
+            record.assignedAgentId =
+              typeof record.assignedAgentId === "string"
+                ? record.assignedAgentId
+                : null;
           }),
       );
   }

@@ -11,6 +11,7 @@ describe("mobile navigation", () => {
     expect(navigationItems.map((item) => item.href)).toEqual([
       "/dashboard",
       "/batiments",
+      "/agents",
       "/controles",
       "/reprises",
       "/historique",

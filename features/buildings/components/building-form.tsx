@@ -1,14 +1,16 @@
 "use client";
 
-import { AlertTriangle, Loader2, Save, Trash2 } from "lucide-react";
+import { AlertTriangle, Loader2, Save, Trash2, UserPlus } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { z } from "zod";
 
 import { Button } from "@/components/ui/button";
+import { useLocalAgents } from "@/features/agents/hooks/use-local-agents";
+import { getAgentStatusLabel } from "@/features/agents/services/agent-labels";
 import { useUserOrganizations } from "@/features/buildings/hooks/use-user-organizations";
 import {
-  agentStatuses,
   buildingAreas,
   buildingPriorityLevels,
   serviceTasks,
@@ -25,15 +27,6 @@ type BuildingFormProps = {
 };
 
 type FieldErrors = Partial<Record<keyof BuildingCreateInput, string>>;
-
-const agentStatusLabels: Record<(typeof agentStatuses)[number], string> = {
-  absent: "Absent",
-  paid_leave: "Conges",
-  present: "Present",
-  replacement: "Remplacement",
-  sick_leave: "Arret maladie",
-  unknown: "Non renseigne",
-};
 
 const priorityLabels: Record<(typeof buildingPriorityLevels)[number], string> = {
   critical: "Critique",
@@ -84,12 +77,15 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
   const isEdit = mode === "edit";
   const [organizationId, setOrganizationId] = useState<string>("");
+  const agentsState = useLocalAgents({
+    organizationId: organizationId || undefined,
+    userId,
+  });
 
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [sector, setSector] = useState("");
-  const [assignedAgentName, setAssignedAgentName] = useState("");
-  const [agentStatus, setAgentStatus] = useState<(typeof agentStatuses)[number]>("unknown");
+  const [assignedAgentId, setAssignedAgentId] = useState("");
   const [priorityLevel, setPriorityLevel] = useState<
     (typeof buildingPriorityLevels)[number]
   >("normal");
@@ -112,8 +108,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
       setName(building.name);
       setAddress(building.address);
       setSector(building.sector);
-      setAssignedAgentName(building.assignedAgentName ?? "");
-      setAgentStatus(building.agentStatus);
+      setAssignedAgentId(building.assignedAgentId ?? "");
       setPriorityLevel(building.priorityLevel);
       setInternalNotes(building.internalNotes ?? "");
       setServiceDays(building.serviceDays);
@@ -125,6 +120,12 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
       setOrganizationId(organizationsState.organizations[0].id);
     }
   }, [building, isEdit, organizationsState.organizations]);
+
+  const selectedAgent = useMemo(
+    () =>
+      agentsState.agents.find((agent) => agent.id === assignedAgentId) ?? null,
+    [agentsState.agents, assignedAgentId],
+  );
 
   const canSave = useMemo(() => {
     if (!userId) {
@@ -249,37 +250,57 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
         <label className="block space-y-2 text-sm font-medium">
           <span>Agent affecte</span>
-          <input
-            className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-            onChange={(event) => {
-              setAssignedAgentName(event.target.value);
-            }}
-            placeholder="Nom de l&apos;agent"
-            value={assignedAgentName}
-          />
-        </label>
-
-        <label className="block space-y-2 text-sm font-medium">
-          <span>Statut de l&apos;agent</span>
           <select
             className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
             onChange={(event) => {
-              setAgentStatus(event.target.value as (typeof agentStatuses)[number]);
+              setAssignedAgentId(event.target.value);
             }}
-            value={agentStatus}
+            value={assignedAgentId}
           >
-            {agentStatuses.map((status) => (
-              <option key={status} value={status}>
-                {agentStatusLabels[status]}
+            <option value="">Aucun agent</option>
+            {agentsState.agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
               </option>
             ))}
           </select>
-          {fieldErrors.agentStatus ? (
+          {fieldErrors.assignedAgentId ? (
             <p className="text-sm font-medium text-red-700">
-              {fieldErrors.agentStatus}
+              {fieldErrors.assignedAgentId}
             </p>
           ) : null}
         </label>
+
+        {agentsState.isLoading ? (
+          <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">
+            <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            Chargement des agents
+          </div>
+        ) : null}
+
+        {agentsState.error ? (
+          <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            <AlertTriangle aria-hidden="true" className="size-4" />
+            Agents locaux indisponibles
+          </div>
+        ) : null}
+
+        {!agentsState.isLoading &&
+        !agentsState.error &&
+        agentsState.agents.length === 0 ? (
+          <Button asChild className="h-11 w-full" variant="outline">
+            <Link href="/agents">
+              <UserPlus aria-hidden="true" className="size-4" />
+              Creer un agent
+            </Link>
+          </Button>
+        ) : null}
+
+        {selectedAgent ? (
+          <p className="rounded-md border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">
+            Statut: {getAgentStatusLabel(selectedAgent.status)}
+          </p>
+        ) : null}
       </section>
 
       <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
@@ -507,9 +528,10 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
             const input: BuildingCreateInput = {
               address,
-              agentStatus,
               areasToCheck,
-              assignedAgentName: normalizeOptionalText(assignedAgentName),
+              assignedAgentId: normalizeOptionalText(assignedAgentId),
+              agentStatus: selectedAgent?.status ?? "unknown",
+              assignedAgentName: selectedAgent?.name ?? null,
               internalNotes: normalizeOptionalText(internalNotes),
               name,
               priorityLevel,

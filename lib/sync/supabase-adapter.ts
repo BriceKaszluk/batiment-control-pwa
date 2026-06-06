@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { RemoteSyncAdapter } from "@/lib/sync/sync-engine";
 import {
+  agentSchema,
   buildingSchema,
   checklistItemSchema,
   checklistResultSchema,
@@ -12,6 +13,7 @@ import {
   correctiveActionSchema,
 } from "@/lib/validation/schemas";
 import type {
+  Agent,
   Building,
   ChecklistItem,
   ChecklistResult,
@@ -24,6 +26,7 @@ import type { Database } from "@/types/supabase";
 type PublicTables = Database["public"]["Tables"];
 
 type SupabaseMutation =
+  | { row: PublicTables["agents"]["Insert"]; table: "agents" }
   | { row: PublicTables["buildings"]["Insert"]; table: "buildings" }
   | { row: PublicTables["checklist_items"]["Insert"]; table: "checklist_items" }
   | { row: PublicTables["control_checklist_results"]["Insert"]; table: "control_checklist_results" }
@@ -44,6 +47,11 @@ export function createSupabaseRemoteSyncAdapter(
 
 export function toSupabaseMutation(operation: OutboxOperation): SupabaseMutation {
   switch (operation.entity) {
+    case "agents":
+      return {
+        row: toAgentInsert(agentSchema.parse(operation.payload)),
+        table: "agents",
+      };
     case "buildings":
       return {
         row: toBuildingInsert(buildingSchema.parse(operation.payload)),
@@ -83,6 +91,13 @@ async function pushOutboxOperation(
   const mutation = toSupabaseMutation(operation);
 
   switch (mutation.table) {
+    case "agents": {
+      const { error } = await client
+        .from("agents")
+        .upsert(mutation.row, { onConflict: "id" });
+      throwIfSupabaseError(error);
+      return;
+    }
     case "buildings": {
       const { error } = await client
         .from("buildings")
@@ -121,10 +136,24 @@ async function pushOutboxOperation(
   }
 }
 
+function toAgentInsert(agent: Agent): PublicTables["agents"]["Insert"] {
+  return {
+    created_at: agent.createdAt,
+    created_by: agent.createdBy,
+    deleted_at: agent.deletedAt,
+    id: agent.id,
+    name: agent.name,
+    organization_id: agent.organizationId,
+    status: agent.status,
+    updated_at: agent.updatedAt,
+  };
+}
+
 function toBuildingInsert(building: Building): PublicTables["buildings"]["Insert"] {
   return {
     agent_status: building.agentStatus,
     areas_to_check: building.areasToCheck,
+    assigned_agent_id: building.assignedAgentId,
     assigned_agent_name: building.assignedAgentName,
     address: building.address,
     created_at: building.createdAt,

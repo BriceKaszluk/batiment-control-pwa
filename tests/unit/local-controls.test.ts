@@ -54,6 +54,7 @@ const building: Building = {
   address: "12 rue du Controle",
   agentStatus: "unknown",
   areasToCheck: [],
+  assignedAgentId: null,
   assignedAgentName: null,
   createdAt: now,
   createdBy: userId,

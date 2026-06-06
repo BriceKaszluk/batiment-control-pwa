@@ -1,6 +1,7 @@
 import type { Json } from "@/types/supabase";
 
 export const synchronizableEntities = [
+  "agents",
   "buildings",
   "checklistItems",
   "checklistResults",

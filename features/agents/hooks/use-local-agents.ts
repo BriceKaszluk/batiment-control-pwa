@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import type { ListBuildingsForUserOptions } from "@/features/buildings/services/local-buildings";
-import type { BuildingListEntry } from "@/features/buildings/services/local-buildings";
+import type { ListAgentsForUserOptions } from "@/features/agents/services/local-agents";
+import type { Agent } from "@/types/domain";
 
-type LocalBuildingsState = {
-  entries: BuildingListEntry[];
+type LocalAgentsState = {
+  agents: Agent[];
   error: string | null;
   isLoading: boolean;
 };
@@ -15,17 +15,17 @@ type LiveQuerySubscription = {
   unsubscribe: () => void;
 };
 
-type UseLocalBuildingsOptions = Pick<
-  ListBuildingsForUserOptions,
-  "limit" | "userId"
+type UseLocalAgentsOptions = Pick<
+  ListAgentsForUserOptions,
+  "organizationId" | "userId"
 >;
 
-export function useLocalBuildings({
-  limit,
+export function useLocalAgents({
+  organizationId,
   userId,
-}: UseLocalBuildingsOptions): LocalBuildingsState {
-  const [state, setState] = useState<LocalBuildingsState>({
-    entries: [],
+}: UseLocalAgentsOptions): LocalAgentsState {
+  const [state, setState] = useState<LocalAgentsState>({
+    agents: [],
     error: null,
     isLoading: true,
   });
@@ -42,28 +42,31 @@ export function useLocalBuildings({
 
     void Promise.all([
       import("dexie"),
-      import("@/features/buildings/services/local-buildings"),
+      import("@/features/agents/services/local-agents"),
     ])
-      .then(([dexieModule, localBuildingsModule]) => {
+      .then(([dexieModule, localAgentsModule]) => {
         if (isCanceled) {
           return;
         }
 
         subscription = dexieModule
           .liveQuery(() =>
-            localBuildingsModule.listBuildingEntriesForUser({ limit, userId }),
+            localAgentsModule.listAgentsForUser({
+              organizationId,
+              userId,
+            }),
           )
           .subscribe({
             error: (error: unknown) => {
               setState({
-                entries: [],
+                agents: [],
                 error: error instanceof Error ? error.message : "Erreur locale",
                 isLoading: false,
               });
             },
-            next: (entries) => {
+            next: (agents) => {
               setState({
-                entries,
+                agents,
                 error: null,
                 isLoading: false,
               });
@@ -76,7 +79,7 @@ export function useLocalBuildings({
         }
 
         setState({
-          entries: [],
+          agents: [],
           error: error instanceof Error ? error.message : "Erreur locale",
           isLoading: false,
         });
@@ -86,7 +89,7 @@ export function useLocalBuildings({
       isCanceled = true;
       subscription?.unsubscribe();
     };
-  }, [limit, userId]);
+  }, [organizationId, userId]);
 
   return state;
 }

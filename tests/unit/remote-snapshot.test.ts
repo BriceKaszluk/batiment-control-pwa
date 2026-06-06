@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { BatimentControlDatabase } from "@/lib/db/schema";
 import { saveRemoteSnapshot, type RemoteSnapshot } from "@/lib/sync/remote-snapshot";
-import type { Building, Organization, OrganizationMember } from "@/types/domain";
+import type { Agent, Building, Organization, OrganizationMember } from "@/types/domain";
 
 const older = "2026-05-31T00:00:00.000Z";
 const newer = "2026-05-31T01:00:00.000Z";
@@ -22,6 +22,7 @@ function createSnapshot(
   overrides: Partial<RemoteSnapshot> = {},
 ): RemoteSnapshot {
   return {
+    agents: [],
     buildings: [],
     checklistItems: [],
     checklistResults: [],
@@ -49,10 +50,22 @@ const organizationMember: OrganizationMember = {
   userId,
 };
 
+const agent: Agent = {
+  createdAt: older,
+  createdBy: userId,
+  deletedAt: null,
+  id: "44444444-4444-4444-8444-444444444444",
+  name: "Agent A",
+  organizationId,
+  status: "present",
+  updatedAt: older,
+};
+
 const building: Building = {
   address: "12 rue du Controle",
   agentStatus: "unknown",
   areasToCheck: [],
+  assignedAgentId: null,
   assignedAgentName: null,
   createdAt: older,
   createdBy: userId,
@@ -95,6 +108,17 @@ describe("remote snapshot import", () => {
     await expect(
       database.organizationMembers.get([organizationId, userId]),
     ).resolves.toEqual(organizationMember);
+  });
+
+  it("saves remote agents locally", async () => {
+    await saveRemoteSnapshot(
+      createSnapshot({
+        agents: [agent],
+      }),
+      database,
+    );
+
+    await expect(database.agents.get(agent.id)).resolves.toEqual(agent);
   });
 
   it("keeps a newer local version instead of overwriting it", async () => {

@@ -2,7 +2,7 @@
 
 import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
-import type { Building, Organization } from "@/types/domain";
+import type { Agent, Building, Organization } from "@/types/domain";
 
 export {
   getBuildingPriorityLabel,
@@ -14,6 +14,11 @@ export type ListBuildingsForUserOptions = {
   database?: BatimentControlDatabase;
   limit?: number;
   userId: string | null;
+};
+
+export type BuildingListEntry = {
+  agent: Agent | null;
+  building: Building;
 };
 
 export async function listBuildingsForUser({
@@ -60,6 +65,47 @@ export async function listBuildingsForUser({
   return typeof limit === "number"
     ? sortedBuildings.slice(0, limit)
     : sortedBuildings;
+}
+
+export async function listBuildingEntriesForUser(
+  options: ListBuildingsForUserOptions,
+): Promise<BuildingListEntry[]> {
+  const database = options.database ?? db;
+  const buildings = await listBuildingsForUser({
+    ...options,
+    database,
+  });
+  const agentIds = [
+    ...new Set(
+      buildings
+        .map((building) => building.assignedAgentId)
+        .filter((agentId): agentId is string => Boolean(agentId)),
+    ),
+  ];
+
+  if (agentIds.length === 0) {
+    return buildings.map((building) => ({
+      agent: null,
+      building,
+    }));
+  }
+
+  const agents = await database.agents.bulkGet(agentIds);
+  const agentById = new Map(
+    agents
+      .filter(
+        (agent): agent is Agent =>
+          agent !== undefined && agent.deletedAt === null,
+      )
+      .map((agent) => [agent.id, agent]),
+  );
+
+  return buildings.map((building) => ({
+    agent: building.assignedAgentId
+      ? agentById.get(building.assignedAgentId) ?? null
+      : null,
+    building,
+  }));
 }
 
 export function compareBuildingsByFieldPriority(

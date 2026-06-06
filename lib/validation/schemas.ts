@@ -110,11 +110,25 @@ export const organizationMemberSchema = z
   })
   .strict();
 
+export const agentSchema = z
+  .object({
+    createdAt: isoDateTimeSchema,
+    createdBy: uuidSchema,
+    deletedAt: isoDateTimeSchema.nullable(),
+    id: uuidSchema,
+    name: z.string().trim().min(1).max(160),
+    organizationId: uuidSchema,
+    status: agentStatusSchema.default("unknown"),
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
 export const buildingSchema = z
   .object({
     address: z.string().trim().min(1).max(240),
     agentStatus: agentStatusSchema.default("unknown"),
     areasToCheck: buildingAreasToCheckSchema,
+    assignedAgentId: uuidSchema.nullable().default(null),
     assignedAgentName: nullableText(160).default(null),
     createdAt: isoDateTimeSchema,
     createdBy: uuidSchema,
@@ -262,6 +276,7 @@ export const buildingCreateSchema = z
     address: buildingSchema.shape.address,
     agentStatus: agentStatusSchema.default("unknown"),
     areasToCheck: buildingAreasToCheckSchema,
+    assignedAgentId: buildingSchema.shape.assignedAgentId,
     assignedAgentName: nullableText(160).optional().default(null),
     internalNotes: nullableText(3000).optional().default(null),
     name: buildingSchema.shape.name,
@@ -274,6 +289,13 @@ export const buildingCreateSchema = z
         const uniqueDays = new Set(serviceDays.map((entry) => entry.day));
         return uniqueDays.size === serviceDays.length;
       }, "Chaque jour de prestation ne peut etre defini qu'une seule fois."),
+  })
+  .strict();
+
+export const agentCreateSchema = agentSchema
+  .pick({
+    name: true,
+    status: true,
   })
   .strict();
 

@@ -1,6 +1,8 @@
 import type { z } from "zod";
 
 import type {
+  agentCreateSchema,
+  agentSchema,
   buildingCreateSchema,
   buildingSchema,
   checklistItemSchema,
@@ -15,6 +17,8 @@ import type {
   photoUploadSchema,
 } from "@/lib/validation/schemas";
 
+export type Agent = z.infer<typeof agentSchema>;
+export type AgentCreateInput = z.infer<typeof agentCreateSchema>;
 export type Organization = z.infer<typeof organizationSchema>;
 export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
 export type Building = z.infer<typeof buildingSchema>;

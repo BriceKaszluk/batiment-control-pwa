@@ -16,7 +16,7 @@ export function BuildingsListSection({
   title,
   userId,
 }: Readonly<BuildingsListSectionProps>) {
-  const { buildings, error, isLoading } = useLocalBuildings({ limit, userId });
+  const { entries, error, isLoading } = useLocalBuildings({ limit, userId });
 
   if (isLoading) {
     return (
@@ -42,7 +42,7 @@ export function BuildingsListSection({
     );
   }
 
-  if (buildings.length === 0) {
+  if (entries.length === 0) {
     return (
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{title}</h2>
@@ -58,12 +58,13 @@ export function BuildingsListSection({
       <div className="flex items-end justify-between gap-3">
         <h2 className="text-lg font-semibold">{title}</h2>
         <p className="text-sm font-medium text-muted-foreground">
-          {buildings.length}
+          {entries.length}
         </p>
       </div>
       <div className="space-y-3">
-        {buildings.map((building) => (
+        {entries.map(({ agent, building }) => (
           <BuildingListItem
+            agent={agent}
             building={building}
             key={building.id}
             userId={userId}

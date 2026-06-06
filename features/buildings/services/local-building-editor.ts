@@ -4,6 +4,7 @@ import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import { saveLocalMutation } from "@/lib/sync/local-mutation";
 import { buildingCreateSchema, buildingSchema } from "@/lib/validation/schemas";
+import type { Agent } from "@/types/domain";
 import type { Building, BuildingCreateInput } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
 
@@ -69,7 +70,11 @@ export async function createBuilding({
     throw new Error("Organisation locale non autorisee.");
   }
 
-  const parsedInput = buildingCreateSchema.parse(input);
+  const parsedInput = await enrichBuildingInputWithAgent({
+    database,
+    input: buildingCreateSchema.parse(input),
+    organizationId,
+  });
   const timestamp = now();
   const building: Building = buildingSchema.parse({
     ...parsedInput,
@@ -132,7 +137,11 @@ export async function updateBuilding({
     throw new Error("Organisation locale non autorisee.");
   }
 
-  const parsedInput = buildingCreateSchema.parse(input);
+  const parsedInput = await enrichBuildingInputWithAgent({
+    database,
+    input: buildingCreateSchema.parse(input),
+    organizationId: existingBuilding.organizationId,
+  });
   const timestamp = now();
   const updatedBuilding: Building = buildingSchema.parse({
     ...existingBuilding,
@@ -150,6 +159,43 @@ export async function updateBuilding({
     schema: buildingSchema,
     table: database.buildings,
   });
+}
+
+async function enrichBuildingInputWithAgent({
+  database,
+  input,
+  organizationId,
+}: {
+  database: BatimentControlDatabase;
+  input: BuildingCreateInput;
+  organizationId: string;
+}): Promise<BuildingCreateInput> {
+  if (!input.assignedAgentId) {
+    return input;
+  }
+
+  const agent = await database.agents.get(input.assignedAgentId);
+
+  if (!isAssignableAgent(agent, organizationId)) {
+    throw new Error("Agent local introuvable pour ce batiment.");
+  }
+
+  return {
+    ...input,
+    agentStatus: agent.status,
+    assignedAgentName: agent.name,
+  };
+}
+
+function isAssignableAgent(
+  agent: Agent | undefined,
+  organizationId: string,
+): agent is Agent {
+  return Boolean(
+    agent &&
+      agent.organizationId === organizationId &&
+      agent.deletedAt === null,
+  );
 }
 
 export type DeleteBuildingOptions = {

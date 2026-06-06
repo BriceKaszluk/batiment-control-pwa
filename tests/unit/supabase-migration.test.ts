@@ -18,6 +18,10 @@ const personalWorkspaceRpcAmbiguityFixMigration = readFileSync(
   "supabase/migrations/20260604000000_fix_personal_workspace_rpc_ambiguity.sql",
   "utf8",
 );
+const agentsMigration = readFileSync(
+  "supabase/migrations/20260606100000_add_agents.sql",
+  "utf8",
+);
 
 const publicTables = [
   "organizations",
@@ -118,5 +122,29 @@ describe("personal workspace Supabase migration", () => {
     expect(personalWorkspaceRpcAmbiguityFixMigration).not.toContain(
       "service_role",
     );
+  });
+});
+
+describe("agents Supabase migration", () => {
+  it("creates the agents table and links buildings by agent id", () => {
+    expect(agentsMigration).toContain("create table public.agents");
+    expect(agentsMigration).toContain("status public.agent_status");
+    expect(agentsMigration).toContain("created_by uuid not null");
+    expect(agentsMigration).toContain("add column assigned_agent_id uuid");
+    expect(agentsMigration).toContain("constraint buildings_agent_same_org");
+  });
+
+  it("enables forced RLS and authenticated policies for agents", () => {
+    expect(agentsMigration).toContain(
+      "alter table public.agents enable row level security;",
+    );
+    expect(agentsMigration).toContain(
+      "alter table public.agents force row level security;",
+    );
+    expect(agentsMigration).toMatch(
+      /create policy "[^"]+"\s+on public\.agents\s+[\s\S]+?to authenticated/i,
+    );
+    expect(agentsMigration).toContain("created_by = (select auth.uid())");
+    expect(agentsMigration).not.toContain("service_role");
   });
 });

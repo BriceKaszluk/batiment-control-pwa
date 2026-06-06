@@ -5,6 +5,7 @@ import {
   Home,
   RotateCcw,
   Settings,
+  Users,
   type LucideIcon,
 } from "lucide-react";
 
@@ -17,6 +18,7 @@ export type NavigationItem = {
 export const navigationItems: readonly NavigationItem[] = [
   { href: "/dashboard", label: "Accueil", icon: Home },
   { href: "/batiments", label: "Batiments", icon: Building2 },
+  { href: "/agents", label: "Agents", icon: Users },
   { href: "/controles", label: "Controles", icon: ClipboardCheck },
   { href: "/reprises", label: "Reprises", icon: RotateCcw },
   { href: "/historique", label: "Historique", icon: History },

@@ -6,7 +6,7 @@ import {
   controlPhotoStorageBucket,
   toControlPhotoInsert,
 } from "@/lib/sync/supabase-photo-upload-adapter";
-import type { Building, ChecklistResult, ControlPhoto } from "@/types/domain";
+import type { Agent, Building, ChecklistResult, ControlPhoto } from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
 
 const now = "2026-05-31T00:00:00.000Z";
@@ -38,11 +38,47 @@ function createOperation(
 }
 
 describe("Supabase sync adapter", () => {
+  it("maps agent payloads to Supabase insert rows", () => {
+    const agent: Agent = {
+      createdAt: now,
+      createdBy: userId,
+      deletedAt: null,
+      id: "66666666-6666-4666-8666-666666666666",
+      name: "Agent A",
+      organizationId,
+      status: "present",
+      updatedAt: now,
+    };
+
+    expect(
+      toSupabaseMutation(
+        createOperation({
+          aggregateId: agent.id,
+          entity: "agents",
+          payload: agent,
+        }),
+      ),
+    ).toEqual({
+      row: {
+        created_at: now,
+        created_by: userId,
+        deleted_at: null,
+        id: agent.id,
+        name: "Agent A",
+        organization_id: organizationId,
+        status: "present",
+        updated_at: now,
+      },
+      table: "agents",
+    });
+  });
+
   it("maps building payloads to Supabase insert rows", () => {
     const building: Building = {
       address: "12 rue du Controle",
       agentStatus: "unknown",
       areasToCheck: [],
+      assignedAgentId: null,
       assignedAgentName: null,
       createdAt: now,
       createdBy: userId,
@@ -70,6 +106,7 @@ describe("Supabase sync adapter", () => {
       row: {
         agent_status: "unknown",
         areas_to_check: [],
+        assigned_agent_id: null,
         assigned_agent_name: null,
         address: "12 rue du Controle",
         created_at: now,
