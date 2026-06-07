@@ -132,7 +132,7 @@ export function AgentsManagementSection({
 
       {formError ? <FeedbackBox tone="error">{formError}</FeedbackBox> : null}
 
-      <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
+      <section className="surface-panel space-y-4 p-4">
         <h2 className="text-base font-semibold">Nouvel agent</h2>
 
         <label className="block space-y-2 text-sm font-medium">
@@ -211,7 +211,7 @@ export function AgentsManagementSection({
           </div>
         ) : null}
 
-        <div className="space-y-3">
+        <div className="motion-list space-y-3">
           {agentsState.agents.map((agent) => (
             <AgentEditor agent={agent} key={agent.id} userId={userId} />
           ))}
@@ -292,7 +292,7 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
   }
 
   return (
-    <article className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
+    <article className="surface-card space-y-4 p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2">
@@ -301,7 +301,7 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
           </div>
           <span
             className={cn(
-              "inline-flex rounded-md border px-2 py-1 text-xs font-medium",
+              "status-pill px-2 py-1 text-xs font-medium",
               statusToneClasses[statusTone],
             )}
           >
@@ -324,7 +324,7 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
       </div>
 
       {isEditing ? (
-        <>
+        <div className="motion-reveal space-y-4">
           {formError ? <FeedbackBox tone="error">{formError}</FeedbackBox> : null}
 
           <label className="block space-y-2 text-sm font-medium">
@@ -394,7 +394,7 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
               Annuler
             </Button>
           </div>
-        </>
+        </div>
       ) : null}
     </article>
   );

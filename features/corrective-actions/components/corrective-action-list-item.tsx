@@ -51,11 +51,11 @@ export function CorrectiveActionListItem({
   }
 
   return (
-    <article className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
+    <article className="surface-card space-y-4 p-4">
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <h3 className="text-base font-semibold leading-6">{action.title}</h3>
-          <span className="rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+          <span className="status-pill border-primary/20 bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
             {getCorrectiveActionStatusLabel(action.status)}
           </span>
         </div>

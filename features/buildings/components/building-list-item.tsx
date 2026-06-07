@@ -71,7 +71,7 @@ export function BuildingListItem({
   const agentTone = getAgentStatusTone(agentStatus);
 
   return (
-    <article className="rounded-md border bg-background p-4 shadow-sm">
+    <article className="surface-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2">
@@ -93,7 +93,7 @@ export function BuildingListItem({
             aria-expanded={isScoreOpen}
             aria-label={`Voir le detail du score ${priorityScore.score}`}
             className={cn(
-              "inline-flex min-w-16 flex-col items-center rounded-md border px-2 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "status-pill min-w-16 flex-col justify-center px-2 py-1 text-xs font-semibold transition-[background-color,border-color,color,transform] duration-200 ease-out active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               scoreToneClasses[priorityScore.level],
             )}
             onClick={() => {
@@ -117,20 +117,20 @@ export function BuildingListItem({
       <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-medium">
         <span
           className={cn(
-            "rounded-md border px-2 py-1",
+            "status-pill px-2 py-1",
             priorityToneClasses[priorityTone],
           )}
         >
           {getBuildingPriorityLabel(building.priorityLevel)}
         </span>
-        <span className="inline-flex items-center gap-1 rounded-md border bg-muted px-2 py-1 text-muted-foreground">
+        <span className="status-pill gap-1 bg-muted px-2 py-1 text-muted-foreground">
           <Clock3 aria-hidden="true" className="size-3.5" />
           {building.lastControlAt ? "Controle deja realise" : "Jamais controle"}
         </span>
         {agentName ? (
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-2 py-1",
+              "status-pill gap-1 px-2 py-1",
               agentToneClasses[agentTone],
             )}
           >
@@ -140,7 +140,7 @@ export function BuildingListItem({
         ) : null}
       </div>
       {isScoreOpen ? (
-        <div className="mt-4 border-t pt-3">
+        <div className="motion-reveal mt-4 border-t pt-3">
           <div className="mb-2 flex items-center justify-between gap-3 text-sm font-semibold">
             <span>Score priorite</span>
             <span>{priorityScore.score}/100</span>

@@ -48,7 +48,7 @@ export function ControlCorrectiveActionsSection({
       </div>
 
       <form
-        className="space-y-3 rounded-md border bg-background p-4 shadow-sm"
+        className="surface-panel space-y-3 p-4"
         onSubmit={(event) => {
           event.preventDefault();
           setError(null);
@@ -157,7 +157,7 @@ export function ControlCorrectiveActionsSection({
           Aucune reprise locale
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="motion-list space-y-3">
           {actions.map((action) => (
             <CorrectiveActionListItem
               action={action}

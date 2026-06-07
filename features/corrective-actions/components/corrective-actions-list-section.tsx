@@ -41,7 +41,7 @@ export function CorrectiveActionsListSection({
   }
 
   return (
-    <section className="space-y-3">
+    <section className="motion-list space-y-3">
       {actions.map((summary) => (
         <CorrectiveActionListItem
           action={summary.action}

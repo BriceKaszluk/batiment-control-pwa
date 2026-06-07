@@ -36,7 +36,7 @@ export function ControlPhotosSection({
       </div>
 
       <form
-        className="space-y-3 rounded-md border bg-background p-4 shadow-sm"
+        className="surface-panel space-y-3 p-4"
         onSubmit={(event) => {
           event.preventDefault();
 
@@ -101,7 +101,7 @@ export function ControlPhotosSection({
         </Button>
 
         {selectedFile ? (
-          <div className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+          <div className="motion-reveal rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
             <p className="truncate font-medium text-foreground">
               {selectedFile.name}
             </p>
@@ -142,7 +142,7 @@ export function ControlPhotosSection({
           Aucune photo locale
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="motion-list grid grid-cols-2 gap-3">
           {photos.map((photo) => (
             <LocalPhotoPreview key={photo.id} photo={photo} />
           ))}
@@ -185,10 +185,10 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
   }, [isExpanded]);
 
   return (
-    <article className="overflow-hidden rounded-md border bg-background shadow-sm">
+    <article className="surface-card overflow-hidden">
       <button
         aria-label={`Agrandir la photo ${photoLabel}`}
-        className="relative block aspect-[4/3] w-full bg-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="relative block aspect-[4/3] w-full overflow-hidden bg-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => {
           if (objectUrl) {
             setIsExpanded(true);
@@ -199,7 +199,7 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
         {objectUrl ? (
           <Image
             alt={photoLabel}
-            className="object-cover"
+            className="object-cover transition-transform duration-300 ease-out hover:scale-[1.03]"
             fill
             sizes="(max-width: 640px) 50vw, 320px"
             src={objectUrl}
@@ -224,7 +224,7 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
         <div
           aria-label="Photo agrandie"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex flex-col bg-black text-white"
+          className="motion-reveal fixed inset-0 z-50 flex flex-col bg-black text-white"
           role="dialog"
         >
           <div className="flex items-center justify-between gap-3 p-3">

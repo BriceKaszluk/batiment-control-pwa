@@ -58,7 +58,7 @@ function SubmitButton() {
 
   return (
     <button
-      className="h-12 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+      className="h-12 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-[background-color,box-shadow,transform] duration-200 ease-out hover:bg-primary/90 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:scale-100 disabled:opacity-60"
       disabled={pending}
       type="submit"
     >

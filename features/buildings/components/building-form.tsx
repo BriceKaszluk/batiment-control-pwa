@@ -242,7 +242,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
         </div>
       ) : null}
 
-      <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
+      <section className="surface-panel space-y-4 p-4">
         <h2 className="text-base font-semibold">Identification</h2>
 
         <label className="block space-y-2 text-sm font-medium">
@@ -317,11 +317,11 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
             <div className="flex flex-wrap gap-2">
               {sectorsState.sectors.map((savedSector) => (
                 <div
-                  className="inline-flex max-w-full items-center rounded-md border bg-muted"
+                  className="status-pill max-w-full bg-muted"
                   key={savedSector.id}
                 >
                   <button
-                    className="min-h-9 max-w-[12rem] truncate px-3 text-sm font-medium"
+                    className="min-h-9 max-w-[12rem] truncate px-3 text-sm font-medium transition-colors hover:text-foreground"
                     onClick={() => {
                       setSector(savedSector.name);
                     }}
@@ -356,7 +356,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
         ) : null}
       </section>
 
-      <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
+      <section className="surface-panel space-y-4 p-4">
         <h2 className="text-base font-semibold">Agent</h2>
 
         <label className="block space-y-2 text-sm font-medium">
@@ -414,7 +414,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
         ) : null}
       </section>
 
-      <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
+      <section className="surface-panel space-y-4 p-4">
         <h2 className="text-base font-semibold">Priorite et notes</h2>
 
         <label className="block space-y-2 text-sm font-medium">
@@ -455,7 +455,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
         </label>
       </section>
 
-      <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
+      <section className="surface-panel space-y-4 p-4">
         <h2 className="text-base font-semibold">Jours de prestation</h2>
 
         {serviceDays.length === 0 ? (
@@ -467,7 +467,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
         <div className="space-y-4">
           {serviceDays.map((entry) => (
             <div
-              className="space-y-3 rounded-md border bg-muted/40 p-3"
+              className="surface-card space-y-3 bg-muted/40 p-3"
               key={entry.id}
             >
               <div className="flex items-center justify-between gap-3">
@@ -517,7 +517,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
                     return (
                       <label
-                        className="flex items-center gap-3 rounded-md border bg-background px-3 py-2 text-sm font-medium"
+                        className="flex items-center gap-3 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-[background-color,border-color,transform] duration-200 ease-out active:scale-[0.99]"
                         key={task}
                       >
                         <input
@@ -596,7 +596,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
         ) : null}
       </section>
 
-      <section className="space-y-4 rounded-md border bg-background p-4 shadow-sm">
+      <section className="surface-panel space-y-4 p-4">
         <h2 className="text-base font-semibold">Elements a controler</h2>
 
         <div className="grid grid-cols-1 gap-2">
@@ -605,7 +605,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
             return (
               <label
-                className="flex items-center gap-3 rounded-md border bg-background px-3 py-2 text-sm font-medium"
+                className="flex items-center gap-3 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-[background-color,border-color,transform] duration-200 ease-out active:scale-[0.99]"
                 key={area}
               >
                 <input

@@ -49,7 +49,7 @@ export function SyncStatusBar({
     >
       <span
         className={cn(
-          "inline-flex h-8 items-center gap-1 rounded-md border px-2",
+          "status-pill h-8 gap-1 px-2",
           isOffline
             ? "border-amber-200 bg-amber-50 text-amber-800"
             : "border-primary/20 bg-primary/10 text-primary",
@@ -60,7 +60,7 @@ export function SyncStatusBar({
       </span>
       <span
         className={cn(
-          "inline-flex h-8 items-center gap-1 rounded-md border px-2",
+          "status-pill h-8 gap-1 px-2",
           syncError
             ? syncToneClasses.error
             : syncToneClasses[syncStatus.tone],
@@ -81,7 +81,8 @@ export function SyncStatusBar({
       </span>
       <button
         className={cn(
-          "inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2 text-foreground transition-colors",
+          "inline-flex h-8 items-center gap-1 rounded-md border border-border bg-background px-2 text-foreground transition-[background-color,border-color,transform]",
+          "duration-200 ease-out active:scale-[0.98] disabled:scale-100",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           canSync
             ? "hover:bg-secondary"

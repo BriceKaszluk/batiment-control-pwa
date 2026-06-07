@@ -23,7 +23,7 @@ export function DashboardPriorityBuildingsSection({
   return (
     <section className="space-y-4">
       {sectors.length > 0 ? (
-        <label className="block space-y-2 text-sm font-medium">
+        <label className="surface-panel block space-y-2 p-3 text-sm font-medium">
           <span className="inline-flex items-center gap-2">
             <MapPinned aria-hidden="true" className="size-4 text-primary" />
             Secteur

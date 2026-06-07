@@ -67,7 +67,7 @@ export function BuildingsListSection({
           {entries.length}
         </p>
       </div>
-      <div className="space-y-3">
+      <div className="motion-list space-y-3">
         {entries.map(({ agent, building, priorityScore }) => (
           <BuildingListItem
             agent={agent}

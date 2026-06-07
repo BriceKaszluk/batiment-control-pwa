@@ -31,8 +31,8 @@ export function MobileShell({
   const currentItem = getCurrentNavigationItem(pathname);
 
   return (
-    <div className="min-h-svh bg-background">
-      <header className="sticky top-0 z-20 border-b bg-background/95 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
+    <div className="min-h-svh bg-background/80">
+      <header className="sticky top-0 z-20 border-b bg-background/90 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[0_1px_14px_rgba(15,23,42,0.05)] backdrop-blur-md">
         <div className="mx-auto flex max-w-screen-sm flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -47,7 +47,7 @@ export function MobileShell({
               <form action={signOut}>
                 <button
                   aria-label="Deconnexion"
-                  className="flex size-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground transition-colors hover:bg-secondary/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex size-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground transition-[background-color,box-shadow,transform] duration-200 ease-out hover:bg-secondary/80 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   title={userEmail ?? "Deconnexion"}
                   type="submit"
                 >
@@ -64,11 +64,11 @@ export function MobileShell({
         </div>
       </header>
 
-      <main className="mx-auto min-h-[calc(100svh-8rem)] max-w-screen-sm px-4 pb-28 pt-6">
+      <main className="app-page mx-auto min-h-[calc(100svh-8rem)] max-w-screen-sm px-4 pb-28 pt-6">
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-10px_24px_rgba(15,23,42,0.06)] backdrop-blur-md">
         <div className="mx-auto flex max-w-screen-sm gap-1 overflow-x-auto">
           {navigationItems.map((item) => {
             const Icon = item.icon;
@@ -78,14 +78,21 @@ export function MobileShell({
               <Link
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex min-w-20 flex-1 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-colors",
+                  "flex min-w-20 flex-1 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-medium text-muted-foreground transition-[background-color,color,box-shadow,transform] duration-200 ease-out active:scale-[0.98]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive && "bg-primary text-primary-foreground",
+                  isActive &&
+                    "bg-primary text-primary-foreground shadow-sm shadow-primary/20",
                 )}
                 href={item.href}
                 key={item.href}
               >
-                <Icon aria-hidden="true" className="size-5 shrink-0" />
+                <Icon
+                  aria-hidden="true"
+                  className={cn(
+                    "size-5 shrink-0 transition-transform duration-200 ease-out",
+                    isActive && "scale-110",
+                  )}
+                />
                 <span className="max-w-full truncate">{item.label}</span>
               </Link>
             );

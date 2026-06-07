@@ -13,7 +13,7 @@ export function ControlListItem({ summary }: Readonly<ControlListItemProps>) {
   const { building, control } = summary;
 
   return (
-    <article className="rounded-md border bg-background p-4 shadow-sm">
+    <article className="surface-card p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2">
@@ -30,7 +30,7 @@ export function ControlListItem({ summary }: Readonly<ControlListItemProps>) {
             {building?.address ?? "Adresse non renseignee"}
           </p>
         </div>
-        <span className="shrink-0 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
+        <span className="status-pill shrink-0 border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
           {getControlStatusLabel(control.status)}
         </span>
       </div>

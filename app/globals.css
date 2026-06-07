@@ -16,6 +16,10 @@
     --input: 205 18% 86%;
     --ring: 166 76% 28%;
     --radius: 0.5rem;
+    --motion-duration-fast: 150ms;
+    --motion-duration-base: 220ms;
+    --motion-duration-slow: 320ms;
+    --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   * {
@@ -24,5 +28,178 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top left, hsl(var(--primary) / 0.08), transparent 22rem),
+      linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted) / 0.45));
+    min-height: 100svh;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    transition:
+      border-color var(--motion-duration-base) var(--motion-ease-out),
+      box-shadow var(--motion-duration-base) var(--motion-ease-out),
+      background-color var(--motion-duration-base) var(--motion-ease-out);
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    box-shadow: 0 0 0 4px hsl(var(--ring) / 0.12);
+  }
+
+  input[type="checkbox"] {
+    @apply accent-primary;
+  }
+}
+
+@layer components {
+  .app-page {
+    animation: app-fade-up var(--motion-duration-slow) var(--motion-ease-out) both;
+  }
+
+  .surface-panel {
+    @apply rounded-md border bg-background shadow-sm;
+    box-shadow:
+      0 1px 2px hsl(210 25% 18% / 0.05),
+      0 10px 24px hsl(210 25% 18% / 0.03);
+  }
+
+  .surface-card {
+    @apply rounded-md border bg-background shadow-sm;
+    box-shadow:
+      0 1px 2px hsl(210 25% 18% / 0.05),
+      0 10px 24px hsl(210 25% 18% / 0.03);
+    transition:
+      transform var(--motion-duration-base) var(--motion-ease-out),
+      border-color var(--motion-duration-base) var(--motion-ease-out),
+      box-shadow var(--motion-duration-base) var(--motion-ease-out),
+      background-color var(--motion-duration-base) var(--motion-ease-out);
+  }
+
+  .status-pill {
+    @apply inline-flex items-center rounded-md border;
+    transition:
+      transform var(--motion-duration-fast) var(--motion-ease-out),
+      background-color var(--motion-duration-base) var(--motion-ease-out),
+      border-color var(--motion-duration-base) var(--motion-ease-out),
+      color var(--motion-duration-base) var(--motion-ease-out);
+  }
+
+  .motion-reveal {
+    animation: app-reveal var(--motion-duration-base) var(--motion-ease-out) both;
+  }
+
+  .motion-toast {
+    animation: app-toast-in var(--motion-duration-slow) var(--motion-ease-out) both;
+  }
+
+  .motion-list > * {
+    animation: app-list-item var(--motion-duration-slow) var(--motion-ease-out) both;
+  }
+
+  .motion-list > *:nth-child(2) {
+    animation-delay: 35ms;
+  }
+
+  .motion-list > *:nth-child(3) {
+    animation-delay: 70ms;
+  }
+
+  .motion-list > *:nth-child(4) {
+    animation-delay: 105ms;
+  }
+
+  .motion-list > *:nth-child(5) {
+    animation-delay: 140ms;
+  }
+
+  .motion-list > *:nth-child(n + 6) {
+    animation-delay: 170ms;
+  }
+
+  @media (hover: hover) {
+    .surface-card:hover {
+      border-color: hsl(var(--primary) / 0.28);
+      box-shadow:
+        0 2px 4px hsl(210 25% 18% / 0.06),
+        0 14px 30px hsl(210 25% 18% / 0.08);
+      transform: translateY(-1px);
+    }
+  }
+
+  .surface-card:active {
+    transform: translateY(0) scale(0.995);
+  }
+}
+
+@keyframes app-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-list-item {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes app-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+
+  .app-page,
+  .motion-list > *,
+  .motion-reveal,
+  .motion-toast {
+    animation: none !important;
   }
 }

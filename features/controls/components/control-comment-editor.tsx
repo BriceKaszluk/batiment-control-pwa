@@ -26,7 +26,7 @@ export function ControlCommentEditor({
   }, [control.id, control.generalComment]);
 
   return (
-    <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
+    <section className="surface-panel space-y-3 p-4">
       <div className="space-y-1">
         <h2 className="text-base font-semibold">Commentaire general</h2>
       </div>

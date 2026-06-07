@@ -78,7 +78,7 @@ export function ControlQualityRatingEditor({
   }
 
   return (
-    <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
+    <section className="surface-panel space-y-3 p-4">
       <h2 className="text-lg font-semibold">Etat global</h2>
 
       <div

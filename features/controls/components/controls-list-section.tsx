@@ -59,7 +59,7 @@ export function ControlsListSection({
           {controls.length}
         </p>
       </div>
-      <div className="space-y-3">
+      <div className="motion-list space-y-3">
         {controls.map((summary) => (
           <ControlListItem key={summary.control.id} summary={summary} />
         ))}

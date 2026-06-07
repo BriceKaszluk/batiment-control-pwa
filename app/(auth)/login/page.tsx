@@ -15,8 +15,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const authNotice = getAuthNotice(readFirstParam(params?.auth));
 
   return (
-    <main className="flex min-h-svh items-center justify-center px-4 py-8">
-      <section className="w-full max-w-sm space-y-6">
+    <main className="app-page flex min-h-svh items-center justify-center px-4 py-8">
+      <section className="surface-panel w-full max-w-sm space-y-6 p-5">
         <div className="space-y-2">
           <p className="text-sm font-medium text-primary">Batiment Control</p>
           <h1 className="text-3xl font-semibold tracking-normal">Connexion</h1>
@@ -35,7 +35,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <p className="text-center text-sm text-muted-foreground">
           Pas encore de compte ?{" "}
-          <Link className="font-medium text-primary" href="/signup">
+          <Link
+            className="font-medium text-primary transition-colors hover:text-primary/80"
+            href="/signup"
+          >
             Creer un compte
           </Link>
         </p>

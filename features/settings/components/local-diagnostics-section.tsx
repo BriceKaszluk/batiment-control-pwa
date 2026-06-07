@@ -64,7 +64,7 @@ export function LocalDiagnosticsSection({
 
   return (
     <section className="space-y-5">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="motion-list grid grid-cols-2 gap-3">
         <Metric
           icon={ShieldCheck}
           label="Session"
@@ -77,7 +77,7 @@ export function LocalDiagnosticsSection({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="motion-list grid grid-cols-2 gap-3">
         <Metric
           icon={Building2}
           label="Batiments"
@@ -135,7 +135,7 @@ export function LocalDiagnosticsSection({
         summary={diagnostics.photoUploads}
       />
 
-      <section className="space-y-3 rounded-md border bg-background p-4 shadow-sm">
+      <section className="surface-panel space-y-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-base font-semibold">Cycle de vie</h2>
@@ -217,7 +217,7 @@ function Metric({
   } satisfies Record<MetricTone, string>;
 
   return (
-    <article className={`rounded-md border p-4 ${toneClasses[tone]}`}>
+    <article className={`surface-card p-4 ${toneClasses[tone]}`}>
       <Icon aria-hidden="true" className="mb-3 size-5" />
       <p className="truncate text-xl font-semibold">{value}</p>
       <p className="mt-1 text-sm font-medium opacity-80">{label}</p>
@@ -233,7 +233,7 @@ function SyncQueueSummary({
   summary: OutboxStatusSummary;
 }>) {
   return (
-    <section className="rounded-md border bg-background p-4 shadow-sm">
+    <section className="surface-panel p-4">
       <h2 className="text-base font-semibold">{label}</h2>
       <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs font-medium text-muted-foreground">
         <QueueCount label="Attente" value={summary.pending} />

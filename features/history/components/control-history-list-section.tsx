@@ -41,7 +41,7 @@ export function ControlHistoryListSection({
   }
 
   return (
-    <section className="space-y-3">
+    <section className="motion-list space-y-3">
       {controls.map((summary) => (
         <ControlHistoryListItem key={summary.control.id} summary={summary} />
       ))}

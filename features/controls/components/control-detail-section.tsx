@@ -53,7 +53,7 @@ export function ControlDetailSection({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-md border bg-muted p-4">
+      <div className="surface-panel bg-muted p-4">
         <div className="flex items-start justify-between gap-3">
           <p className="flex min-w-0 items-center gap-2 text-base font-semibold">
             <Building2 aria-hidden="true" className="size-5 shrink-0 text-primary" />
@@ -61,7 +61,7 @@ export function ControlDetailSection({
               {detail.building?.name ?? "Batiment non disponible"}
             </span>
           </p>
-          <span className="shrink-0 rounded-md border border-primary/20 bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+          <span className="status-pill shrink-0 border-primary/20 bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
             {getControlStatusLabel(detail.control.status)}
           </span>
         </div>
@@ -85,7 +85,7 @@ export function ControlDetailSection({
           Aucune checklist locale
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="motion-list space-y-3">
           {detail.checklist.map((entry) => (
             <ChecklistResultEditor
               controlId={detail.control.id}

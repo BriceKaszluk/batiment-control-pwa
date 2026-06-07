@@ -57,7 +57,7 @@ export function BuildingSaveToast() {
   return (
     <div
       aria-live="polite"
-      className="fixed inset-x-4 bottom-28 z-40 mx-auto max-w-screen-sm rounded-md border border-emerald-200 bg-emerald-50 p-3 text-emerald-900 shadow-lg"
+      className="motion-toast fixed inset-x-4 bottom-28 z-40 mx-auto max-w-screen-sm rounded-md border border-emerald-200 bg-emerald-50 p-3 text-emerald-900 shadow-lg shadow-emerald-900/10"
       role="status"
     >
       <div className="flex items-start gap-3">
@@ -71,7 +71,7 @@ export function BuildingSaveToast() {
         </div>
         <button
           aria-label="Fermer la notification"
-          className="flex size-8 shrink-0 items-center justify-center rounded-md text-emerald-900 transition-colors hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
+          className="flex size-8 shrink-0 items-center justify-center rounded-md text-emerald-900 transition-[background-color,transform] duration-200 ease-out hover:bg-emerald-100 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700"
           onClick={() => {
             setNotice(null);
           }}
