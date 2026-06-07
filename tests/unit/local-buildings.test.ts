@@ -161,6 +161,64 @@ describe("local buildings", () => {
     ]);
   });
 
+  it("filters buildings by a partial name match", async () => {
+    const matchingBuilding = createBuilding({
+      id: "33333333-3333-4333-8333-333333333333",
+      name: "Le Roux",
+      priorityLevel: "normal",
+    });
+    const otherBuilding = createBuilding({
+      id: "44444444-4444-4444-8444-444444444444",
+      name: "Residence Acacia",
+      priorityLevel: "normal",
+    });
+
+    await database.organizationMembers.put(organizationMember);
+    await database.buildings.bulkPut([otherBuilding, matchingBuilding]);
+
+    await expect(
+      listBuildingsForUser({ database, searchQuery: "Rou", userId }),
+    ).resolves.toEqual([matchingBuilding]);
+  });
+
+  it("filters buildings by address, sector, notes or assigned agent", async () => {
+    const assignedBuilding = createBuilding({
+      address: "4 impasse des Tilleuls",
+      assignedAgentId: agent.id,
+      id: "33333333-3333-4333-8333-333333333333",
+      internalNotes: "Controle local poubelles sensible",
+      name: "Residence calme",
+      priorityLevel: "normal",
+      sector: "Tournee Ouest",
+    });
+    const otherBuilding = createBuilding({
+      id: "44444444-4444-4444-8444-444444444444",
+      name: "Residence Est",
+      priorityLevel: "normal",
+      sector: "Tournee Est",
+    });
+
+    await database.organizationMembers.put(organizationMember);
+    await database.agents.put({
+      ...agent,
+      name: "Bruno Agent",
+    });
+    await database.buildings.bulkPut([otherBuilding, assignedBuilding]);
+
+    await expect(
+      listBuildingsForUser({ database, searchQuery: "tilleuls", userId }),
+    ).resolves.toEqual([assignedBuilding]);
+    await expect(
+      listBuildingsForUser({ database, searchQuery: "ouest", userId }),
+    ).resolves.toEqual([assignedBuilding]);
+    await expect(
+      listBuildingsForUser({ database, searchQuery: "poubelles", userId }),
+    ).resolves.toEqual([assignedBuilding]);
+    await expect(
+      listBuildingsForUser({ database, searchQuery: "bruno", userId }),
+    ).resolves.toEqual([assignedBuilding]);
+  });
+
   it("returns the latest assigned agent for building list entries", async () => {
     const assignedBuilding = createBuilding({
       assignedAgentId: agent.id,

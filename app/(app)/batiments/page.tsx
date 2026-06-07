@@ -31,6 +31,7 @@ export default async function BuildingsPage() {
       </Button>
 
       <BuildingsListSection
+        enableSearch
         title="Liste locale"
         userId={authState.userId}
       />

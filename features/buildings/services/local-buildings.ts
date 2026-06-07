@@ -25,6 +25,7 @@ export type ListBuildingsForUserOptions = {
   database?: BatimentControlDatabase;
   limit?: number;
   now?: () => string;
+  searchQuery?: string | null;
   sectorName?: string | null;
   userId: string | null;
 };
@@ -39,6 +40,7 @@ export async function listBuildingsForUser({
   database = db,
   limit,
   now,
+  searchQuery,
   sectorName,
   userId,
 }: ListBuildingsForUserOptions): Promise<Building[]> {
@@ -46,6 +48,7 @@ export async function listBuildingsForUser({
     database,
     limit,
     now,
+    searchQuery,
     sectorName,
     userId,
   });
@@ -57,6 +60,7 @@ export async function listBuildingEntriesForUser({
   database = db,
   limit,
   now = () => new Date().toISOString(),
+  searchQuery,
   sectorName,
   userId,
 }: ListBuildingsForUserOptions): Promise<BuildingListEntry[]> {
@@ -84,7 +88,11 @@ export async function listBuildingEntriesForUser({
       ...scoreContextsByBuildingId.get(building.id),
     }),
   }));
-  const sortedEntries = scoredEntries.sort(compareBuildingEntriesByPriorityScore);
+  const matchingEntries = filterBuildingEntriesBySearchQuery({
+    entries: scoredEntries,
+    searchQuery,
+  });
+  const sortedEntries = matchingEntries.sort(compareBuildingEntriesByPriorityScore);
 
   return typeof limit === "number" ? sortedEntries.slice(0, limit) : sortedEntries;
 }
@@ -278,4 +286,45 @@ export function compareBuildingEntriesByPriorityScore(
 
 function normalizeSectorName(sectorName: string) {
   return sectorName.trim().toLocaleLowerCase("fr");
+}
+
+export function filterBuildingEntriesBySearchQuery({
+  entries,
+  searchQuery,
+}: {
+  entries: BuildingListEntry[];
+  searchQuery?: string | null;
+}) {
+  const normalizedQuery = normalizeSearchText(searchQuery ?? "");
+
+  if (!normalizedQuery) {
+    return entries;
+  }
+
+  return entries.filter((entry) =>
+    getBuildingSearchContent(entry).includes(normalizedQuery),
+  );
+}
+
+function getBuildingSearchContent({ agent, building }: BuildingListEntry) {
+  return normalizeSearchText(
+    [
+      building.name,
+      building.address,
+      building.sector,
+      building.internalNotes,
+      agent?.name,
+      building.assignedAgentName,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(" "),
+  );
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toLocaleLowerCase("fr");
 }

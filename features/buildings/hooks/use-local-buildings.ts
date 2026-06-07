@@ -17,11 +17,12 @@ type LiveQuerySubscription = {
 
 type UseLocalBuildingsOptions = Pick<
   ListBuildingsForUserOptions,
-  "limit" | "sectorName" | "userId"
+  "limit" | "searchQuery" | "sectorName" | "userId"
 >;
 
 export function useLocalBuildings({
   limit,
+  searchQuery,
   sectorName,
   userId,
 }: UseLocalBuildingsOptions): LocalBuildingsState {
@@ -54,6 +55,7 @@ export function useLocalBuildings({
           .liveQuery(() =>
             localBuildingsModule.listBuildingEntriesForUser({
               limit,
+              searchQuery,
               sectorName,
               userId,
             }),
@@ -91,7 +93,7 @@ export function useLocalBuildings({
       isCanceled = true;
       subscription?.unsubscribe();
     };
-  }, [limit, sectorName, userId]);
+  }, [limit, searchQuery, sectorName, userId]);
 
   return state;
 }

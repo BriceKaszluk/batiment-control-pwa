@@ -3,6 +3,7 @@
 import { Camera, ImageIcon, Loader2, X } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -156,6 +157,11 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
   const photoLabel = photo.caption?.trim() || photo.fileName;
   const [isExpanded, setIsExpanded] = useState(false);
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalRoot(document.body);
+  }, []);
 
   useEffect(() => {
     const url = URL.createObjectURL(photo.blob);
@@ -181,6 +187,19 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
 
     return () => {
       window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isExpanded]);
+
+  useEffect(() => {
+    if (!isExpanded) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
     };
   }, [isExpanded]);
 
@@ -220,7 +239,7 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
         </p>
       </div>
 
-      {isExpanded && objectUrl ? (
+      {isExpanded && objectUrl && portalRoot ? createPortal(
         <div
           aria-label="Photo agrandie"
           aria-modal="true"
@@ -230,7 +249,7 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
           <div className="flex items-center justify-between gap-3 p-3">
             <p className="min-w-0 truncate text-sm font-medium">{photoLabel}</p>
             <Button
-              aria-label="Fermer l'aperçu photo"
+              aria-label="Fermer l'apercu photo"
               className="shrink-0 border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
               onClick={() => {
                 setIsExpanded(false);
@@ -252,7 +271,8 @@ function LocalPhotoPreview({ photo }: Readonly<{ photo: ControlPhoto }>) {
               unoptimized
             />
           </div>
-        </div>
+        </div>,
+        portalRoot,
       ) : null}
     </article>
   );
