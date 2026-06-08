@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -15,9 +16,31 @@ export function CompleteControlButton({
   control,
   userId,
 }: Readonly<CompleteControlButtonProps>) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const isCompleted = control.status === "completed";
+
+  async function handleCompleteControl() {
+    setError(null);
+    setIsSaving(true);
+
+    try {
+      const localControlsModule = await import(
+        "@/features/controls/services/local-controls"
+      );
+
+      await localControlsModule.completeControl({
+        controlId: control.id,
+        userId,
+      });
+
+      router.push("/controles?notice=controle-termine");
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Controle non termine");
+      setIsSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-2">
@@ -25,24 +48,7 @@ export function CompleteControlButton({
         className="h-12 w-full"
         disabled={!userId || isSaving || isCompleted}
         onClick={() => {
-          setError(null);
-          setIsSaving(true);
-
-          void import("@/features/controls/services/local-controls")
-            .then((localControlsModule) =>
-              localControlsModule.completeControl({
-                controlId: control.id,
-                userId,
-              }),
-            )
-            .catch((error: unknown) => {
-              setError(
-                error instanceof Error ? error.message : "Controle non termine",
-              );
-            })
-            .finally(() => {
-              setIsSaving(false);
-            });
+          void handleCompleteControl();
         }}
         type="button"
       >
