@@ -8,13 +8,14 @@ import {
   listBuildingEntriesForUser,
   listBuildingsForUser,
 } from "@/features/buildings/services/local-buildings";
-import type { Agent, Building, OrganizationMember } from "@/types/domain";
+import type { Agent, Building, Control, OrganizationMember } from "@/types/domain";
 
 const now = "2026-05-31T00:00:00.000Z";
 const older = "2026-05-01T00:00:00.000Z";
 const organizationId = "11111111-1111-4111-8111-111111111111";
 const otherOrganizationId = "99999999-9999-4999-8999-999999999999";
 const userId = "22222222-2222-4222-8222-222222222222";
+const buildingId = "33333333-3333-4333-8333-333333333333";
 
 function createTestDatabase() {
   return new BatimentControlDatabase(
@@ -66,6 +67,29 @@ const agent: Agent = {
   status: "present",
   updatedAt: now,
 };
+
+function createControl(overrides: Partial<Control> & Pick<Control, "id">): Control {
+  const { id, ...optionalOverrides } = overrides;
+
+  return {
+    archivedAt: null,
+    buildingId,
+    completedAt: now,
+    controlledBy: userId,
+    createdAt: now,
+    deletedAt: null,
+    detailsPurgedAt: null,
+    generalComment: null,
+    id,
+    organizationId,
+    photosPurgedAt: null,
+    qualityRating: "acceptable",
+    startedAt: now,
+    status: "completed",
+    updatedAt: now,
+    ...optionalOverrides,
+  };
+}
 
 describe("local buildings", () => {
   let database: BatimentControlDatabase;
@@ -238,8 +262,9 @@ describe("local buildings", () => {
         agent,
         building: assignedBuilding,
         priorityScore: expect.objectContaining({
-          score: 48,
+          score: 59,
         }),
+        recentCompletedControls: [],
       },
     ]);
 
@@ -259,9 +284,55 @@ describe("local buildings", () => {
         }),
         building: assignedBuilding,
         priorityScore: expect.objectContaining({
-          score: 48,
+          score: 59,
         }),
+        recentCompletedControls: [],
       },
+    ]);
+  });
+
+  it("returns the latest completed controls for building consultation", async () => {
+    const buildingWithHistory = createBuilding({
+      id: buildingId,
+      name: "Batiment historique",
+      priorityLevel: "normal",
+    });
+    const latestControl = createControl({
+      completedAt: "2026-05-30T00:00:00.000Z",
+      id: "77777777-7777-4777-8777-777777777777",
+      startedAt: "2026-05-30T00:00:00.000Z",
+    });
+    const secondControl = createControl({
+      completedAt: "2026-05-15T00:00:00.000Z",
+      id: "88888888-8888-4888-8888-888888888888",
+      startedAt: "2026-05-15T00:00:00.000Z",
+    });
+    const thirdControl = createControl({
+      completedAt: "2026-05-01T00:00:00.000Z",
+      id: "99999999-9999-4999-8999-999999999999",
+      startedAt: "2026-05-01T00:00:00.000Z",
+    });
+    const olderControl = createControl({
+      completedAt: "2026-04-01T00:00:00.000Z",
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      startedAt: "2026-04-01T00:00:00.000Z",
+    });
+
+    await database.organizationMembers.put(organizationMember);
+    await database.buildings.put(buildingWithHistory);
+    await database.controls.bulkPut([
+      olderControl,
+      secondControl,
+      latestControl,
+      thirdControl,
+    ]);
+
+    const [entry] = await listBuildingEntriesForUser({ database, userId });
+
+    expect(entry?.recentCompletedControls.map((control) => control.id)).toEqual([
+      latestControl.id,
+      secondControl.id,
+      thirdControl.id,
     ]);
   });
 

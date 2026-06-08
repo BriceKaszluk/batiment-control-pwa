@@ -6,10 +6,14 @@ import { saveLocalMutation } from "@/lib/sync/local-mutation";
 import { enqueueOutboxOperationInCurrentTransaction } from "@/lib/sync/outbox";
 import { parseOutboxPayload } from "@/lib/validation/sync-schemas";
 import { buildingSchema, controlSchema } from "@/lib/validation/schemas";
+import {
+  getControlQualityRatingLabel,
+  getControlStatusLabel,
+} from "@/features/controls/services/control-labels";
 import type { Building, Control } from "@/types/domain";
 import type { OutboxOperation } from "@/types/sync";
 
-export { getControlStatusLabel } from "@/features/controls/services/control-labels";
+export { getControlStatusLabel };
 
 export type LocalControlSummary = {
   building: Building | undefined;
@@ -18,7 +22,6 @@ export type LocalControlSummary = {
 
 export type LocalControlHistorySummary = LocalControlSummary & {
   checklistResultCount: number;
-  correctiveActionCount: number;
   photoCount: number;
 };
 
@@ -55,10 +58,13 @@ export type StartDraftControlOptions = {
 export type ListControlsForUserOptions = {
   database?: BatimentControlDatabase;
   limit?: number;
+  now?: () => string;
   userId: string | null;
 };
 
-export type ListControlHistoryForUserOptions = ListControlsForUserOptions;
+export type ListControlHistoryForUserOptions = ListControlsForUserOptions & {
+  searchQuery?: string | null;
+};
 
 export async function completeControl({
   clientMutationId,
@@ -230,6 +236,7 @@ export async function startDraftControl({
 export async function listControlsForUser({
   database = db,
   limit,
+  now = () => new Date().toISOString(),
   userId,
 }: ListControlsForUserOptions): Promise<LocalControlSummary[]> {
   if (!userId) {
@@ -251,7 +258,11 @@ export async function listControlsForUser({
   const controls = await database.controls
     .where("organizationId")
     .anyOf(organizationIds)
-    .filter((control) => control.deletedAt === null)
+    .filter(
+      (control) =>
+        control.deletedAt === null &&
+        (control.status === "draft" || isCompletedOnLocalDay(control, now())),
+    )
     .toArray();
   const sortedControls = controls.sort(compareControlsByStartedAt);
   const limitedControls =
@@ -268,6 +279,8 @@ export async function listControlsForUser({
 export async function listControlHistoryForUser({
   database = db,
   limit,
+  now = () => new Date().toISOString(),
+  searchQuery,
   userId,
 }: ListControlHistoryForUserOptions): Promise<LocalControlHistorySummary[]> {
   if (!userId) {
@@ -293,26 +306,34 @@ export async function listControlHistoryForUser({
       (control) =>
         control.archivedAt === null &&
         control.deletedAt === null &&
-        control.status === "completed",
+        control.status === "completed" &&
+        !isCompletedOnLocalDay(control, now()),
     )
     .toArray();
   const sortedControls = controls.sort(compareControlsByCompletedAt);
+  const summaries = await Promise.all(
+    sortedControls.map(async (control) => ({
+      building: await database.buildings.get(control.buildingId),
+      control,
+    })),
+  );
+  const matchingSummaries = filterControlSummariesBySearchQuery({
+    searchQuery,
+    summaries,
+  });
   const limitedControls =
-    typeof limit === "number" ? sortedControls.slice(0, limit) : sortedControls;
+    typeof limit === "number"
+      ? matchingSummaries.slice(0, limit)
+      : matchingSummaries;
 
   return Promise.all(
-    limitedControls.map(async (control) => ({
-      building: await database.buildings.get(control.buildingId),
+    limitedControls.map(async ({ building, control }) => ({
+      building,
       checklistResultCount: await database.checklistResults
         .where("controlId")
         .equals(control.id)
         .count(),
       control,
-      correctiveActionCount: await database.correctiveActions
-        .where("controlId")
-        .equals(control.id)
-        .filter((action) => action.deletedAt === null)
-        .count(),
       photoCount: await database.controlPhotos
         .where("controlId")
         .equals(control.id)
@@ -320,6 +341,82 @@ export async function listControlHistoryForUser({
         .count(),
     })),
   );
+}
+
+function isCompletedOnLocalDay(control: Control, now: string) {
+  if (control.status !== "completed" || !control.completedAt) {
+    return false;
+  }
+
+  const { endOfDayMs, startOfDayMs } = getLocalDayBounds(now);
+  const completedAtMs = Date.parse(control.completedAt);
+
+  return completedAtMs >= startOfDayMs && completedAtMs < endOfDayMs;
+}
+
+function getLocalDayBounds(value: string) {
+  const date = new Date(value);
+  const startOfDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+
+  return {
+    endOfDayMs: startOfDay.getTime() + 86_400_000,
+    startOfDayMs: startOfDay.getTime(),
+  };
+}
+
+function filterControlSummariesBySearchQuery({
+  searchQuery,
+  summaries,
+}: {
+  searchQuery?: string | null;
+  summaries: LocalControlSummary[];
+}) {
+  const normalizedQuery = normalizeSearchText(searchQuery ?? "");
+
+  if (!normalizedQuery) {
+    return summaries;
+  }
+
+  return summaries.filter((summary) =>
+    getControlSearchContent(summary).includes(normalizedQuery),
+  );
+}
+
+function getControlSearchContent({ building, control }: LocalControlSummary) {
+  return normalizeSearchText(
+    [
+      building?.name,
+      building?.address,
+      building?.sector,
+      control.generalComment,
+      control.completedAt,
+      control.completedAt ? formatSearchDate(control.completedAt) : null,
+      getControlStatusLabel(control.status),
+      control.qualityRating
+        ? getControlQualityRatingLabel(control.qualityRating)
+        : null,
+    ]
+      .filter((value): value is string => Boolean(value))
+      .join(" "),
+  );
+}
+
+function formatSearchDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+  }).format(new Date(value));
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toLocaleLowerCase("fr");
 }
 
 function compareControlsByStartedAt(firstControl: Control, secondControl: Control) {

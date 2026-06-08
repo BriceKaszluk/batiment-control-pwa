@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { calculateBuildingPriorityScore } from "@/features/buildings/services/building-priority-score";
-import type {
-  Building,
-  ChecklistResult,
-  Control,
-  CorrectiveAction,
-} from "@/types/domain";
+import type { Building, ChecklistResult, Control } from "@/types/domain";
 
 const now = "2026-06-06T00:00:00.000Z";
 const organizationId = "11111111-1111-4111-8111-111111111111";
@@ -55,29 +50,6 @@ function createControl(overrides: Partial<Control> = {}): Control {
   };
 }
 
-function createCorrectiveAction(
-  overrides: Partial<CorrectiveAction> = {},
-): CorrectiveAction {
-  return {
-    assignedTo: null,
-    buildingId,
-    controlId,
-    createdAt: now,
-    createdBy: userId,
-    deletedAt: null,
-    description: null,
-    dueDate: null,
-    id: "55555555-5555-4555-8555-555555555555",
-    organizationId,
-    priority: "normal",
-    resolvedAt: null,
-    status: "open",
-    title: "Reprise hall",
-    updatedAt: now,
-    ...overrides,
-  };
-}
-
 describe("building priority score", () => {
   it("gives a high score to buildings that were never controlled", () => {
     const score = calculateBuildingPriorityScore({
@@ -88,19 +60,19 @@ describe("building priority score", () => {
       now,
     });
 
-    expect(score.score).toBe(52);
-    expect(score.level).toBe("watch");
+    expect(score.score).toBe(65);
+    expect(score.level).toBe("priority");
     expect(score.factors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           key: "controlDelay",
-          points: 45,
+          points: 55,
         }),
       ]),
     );
   });
 
-  it("combines delay, quality, corrective actions and configured priority", () => {
+  it("combines delay, quality and configured priority", () => {
     const score = calculateBuildingPriorityScore({
       building: {
         ...building,
@@ -110,24 +82,13 @@ describe("building priority score", () => {
         qualityRating: "unsatisfying",
       }),
       now,
-      openCorrectiveActions: [
-        createCorrectiveAction({
-          dueDate: "2026-06-01",
-          priority: "high",
-        }),
-        createCorrectiveAction({
-          id: "66666666-6666-4666-8666-666666666666",
-          priority: "normal",
-        }),
-      ],
     });
 
-    expect(score.score).toBe(86);
+    expect(score.score).toBe(87);
     expect(score.level).toBe("urgent");
     expect(score.factors.map((factor) => factor.key)).toEqual([
       "controlDelay",
       "quality",
-      "correctiveActions",
       "buildingPriority",
     ]);
   });
@@ -169,7 +130,7 @@ describe("building priority score", () => {
       expect.arrayContaining([
         expect.objectContaining({
           key: "quality",
-          points: 20,
+          points: 25,
         }),
       ]),
     );

@@ -11,7 +11,6 @@ import type {
   Control,
   ControlPhoto,
   ControlSummary,
-  CorrectiveAction,
   OrganizationMember,
 } from "@/types/domain";
 
@@ -52,9 +51,7 @@ type LifecycleCandidate = {
   building: Building | undefined;
   checklistResults: ChecklistResult[];
   control: Control;
-  correctiveActions: CorrectiveAction[];
   hasBlockingSync: boolean;
-  hasOpenCorrectiveAction: boolean;
   photos: ControlPhoto[];
 };
 
@@ -272,15 +269,10 @@ async function getLifecycleCandidates({
 
   return Promise.all(
     controls.map(async (control) => {
-      const [building, checklistResults, correctiveActions, photos] =
+      const [building, checklistResults, photos] =
         await Promise.all([
           database.buildings.get(control.buildingId),
           database.checklistResults.where("controlId").equals(control.id).toArray(),
-          database.correctiveActions
-            .where("controlId")
-            .equals(control.id)
-            .filter((action) => action.deletedAt === null)
-            .toArray(),
           database.controlPhotos
             .where("controlId")
             .equals(control.id)
@@ -292,14 +284,11 @@ async function getLifecycleCandidates({
         building,
         checklistResults,
         control,
-        correctiveActions,
         hasBlockingSync: await hasBlockingSync(database, {
           checklistResults,
           control,
-          correctiveActions,
           photos,
         }),
-        hasOpenCorrectiveAction: correctiveActions.some(isOpenCorrectiveAction),
         photos,
       };
     }),
@@ -323,14 +312,12 @@ async function hasBlockingSync(
   candidate: {
     checklistResults: ChecklistResult[];
     control: Control;
-    correctiveActions: CorrectiveAction[];
     photos: ControlPhoto[];
   },
 ) {
   const relatedAggregateIds = new Set([
     candidate.control.id,
     ...candidate.checklistResults.map((result) => result.id),
-    ...candidate.correctiveActions.map((action) => action.id),
     ...candidate.photos.map((photo) => photo.id),
   ]);
 
@@ -360,9 +347,6 @@ function buildControlSummary(
   existingSummary: ControlSummary | undefined,
 ): ControlSummary {
   const activePhotos = candidate.photos.filter((photo) => photo.deletedAt === null);
-  const activeCorrectiveActions = candidate.correctiveActions.filter(
-    (action) => action.deletedAt === null,
-  );
   const nonCompliantResultCount = candidate.checklistResults.filter(
     (result) => result.status === "non_compliant",
   ).length;
@@ -379,7 +363,7 @@ function buildControlSummary(
     completedAt: candidate.control.completedAt,
     controlId: candidate.control.id,
     controlledBy: candidate.control.controlledBy,
-    correctiveActionCount: activeCorrectiveActions.length,
+    correctiveActionCount: 0,
     createdAt: existingSummary?.createdAt ?? timestamp,
     deletedAt: null,
     generalComment: candidate.control.generalComment,
@@ -399,7 +383,7 @@ function buildControlSummary(
 }
 
 function isLifecycleBlocked(candidate: LifecycleCandidate) {
-  return candidate.hasBlockingSync || candidate.hasOpenCorrectiveAction;
+  return candidate.hasBlockingSync;
 }
 
 function isArchivable(
@@ -440,8 +424,4 @@ function isControlOlderThan(control: Control, days: number, now: string) {
   }
 
   return Date.parse(control.completedAt) <= Date.parse(now) - days * 86_400_000;
-}
-
-function isOpenCorrectiveAction(action: CorrectiveAction) {
-  return action.status === "open" || action.status === "in_progress";
 }

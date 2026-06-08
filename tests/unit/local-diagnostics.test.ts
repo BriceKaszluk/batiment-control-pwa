@@ -3,33 +3,29 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { BatimentControlDatabase } from "@/lib/db/schema";
-import { saveLocalMutation } from "@/lib/sync/local-mutation";
-import { buildingSchema } from "@/lib/validation/schemas";
-import {
-  getLocalDiagnostics,
-  getPendingSyncCount,
-  getSyncErrorCount,
-} from "@/features/settings/services/local-diagnostics";
-import { saveControlPhoto } from "@/features/controls/services/local-control-photos";
+import { getLocalDiagnostics } from "@/features/settings/services/local-diagnostics";
 import type {
+  Agent,
   Building,
+  BuildingSector,
   Control,
-  CorrectiveAction,
+  Organization,
   OrganizationMember,
 } from "@/types/domain";
 
 const now = "2026-05-31T00:00:00.000Z";
+const midday = "2026-05-31T12:00:00.000Z";
+const yesterday = "2026-05-30T12:00:00.000Z";
 const organizationId = "11111111-1111-4111-8111-111111111111";
 const otherOrganizationId = "99999999-9999-4999-8999-999999999999";
 const userId = "22222222-2222-4222-8222-222222222222";
+const otherUserId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const buildingId = "33333333-3333-4333-8333-333333333333";
 const controlId = "44444444-4444-4444-8444-444444444444";
 const completedControlId = "55555555-5555-4555-8555-555555555555";
-const correctiveActionId = "66666666-6666-4666-8666-666666666666";
-const photoId = "77777777-7777-4777-8777-777777777777";
-const uploadId = "88888888-8888-4888-8888-888888888888";
-const mutationId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
-const operationId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const historyControlId = "66666666-6666-4666-8666-666666666666";
+const agentId = "77777777-7777-4777-8777-777777777777";
+const sectorId = "88888888-8888-4888-8888-888888888888";
 
 function createTestDatabase() {
   return new BatimentControlDatabase(
@@ -37,24 +33,34 @@ function createTestDatabase() {
   );
 }
 
-function createIdFactory(ids: readonly string[]) {
-  let index = 0;
+const organization: Organization = {
+  createdAt: now,
+  id: organizationId,
+  name: "Espace personnel",
+  ownerId: userId,
+  updatedAt: now,
+  workspaceType: "personal",
+};
 
-  return () => {
-    const id = ids[index];
-    index += 1;
-
-    if (!id) {
-      throw new Error("No test id available.");
-    }
-
-    return id;
-  };
-}
+const otherOrganization: Organization = {
+  createdAt: now,
+  id: otherOrganizationId,
+  name: "Autre espace",
+  ownerId: otherUserId,
+  updatedAt: now,
+  workspaceType: "personal",
+};
 
 const organizationMember: OrganizationMember = {
   createdAt: now,
   organizationId,
+  role: "team_lead",
+  userId,
+};
+
+const otherOrganizationMember: OrganizationMember = {
+  createdAt: now,
+  organizationId: otherOrganizationId,
   role: "team_lead",
   userId,
 };
@@ -79,6 +85,27 @@ const building: Building = {
   updatedAt: now,
 };
 
+const agent: Agent = {
+  createdAt: now,
+  createdBy: userId,
+  deletedAt: null,
+  id: agentId,
+  name: "Agent A",
+  organizationId,
+  status: "present",
+  updatedAt: now,
+};
+
+const sector: BuildingSector = {
+  createdAt: now,
+  createdBy: userId,
+  deletedAt: null,
+  id: sectorId,
+  name: "Secteur Nord",
+  organizationId,
+  updatedAt: now,
+};
+
 function createControl(overrides: Partial<Control> = {}): Control {
   return {
     archivedAt: null,
@@ -100,24 +127,6 @@ function createControl(overrides: Partial<Control> = {}): Control {
   };
 }
 
-const correctiveAction: CorrectiveAction = {
-  assignedTo: null,
-  buildingId,
-  controlId,
-  createdAt: now,
-  createdBy: userId,
-  deletedAt: null,
-  description: null,
-  dueDate: null,
-  id: correctiveActionId,
-  organizationId,
-  priority: "normal",
-  resolvedAt: null,
-  status: "open",
-  title: "Reprendre le hall",
-  updatedAt: now,
-};
-
 describe("local diagnostics", () => {
   let database: BatimentControlDatabase;
 
@@ -134,71 +143,79 @@ describe("local diagnostics", () => {
     await expect(
       getLocalDiagnostics({ database, userId: null }),
     ).resolves.toMatchObject({
+      agentCount: 0,
       buildingCount: 0,
-      completedControlCount: 0,
       draftControlCount: 0,
-      localPhotoCount: 0,
-      openCorrectiveActionCount: 0,
-      organizationCount: 0,
+      historyControlCount: 0,
+      sectorCount: 0,
+      todayControlCount: 0,
     });
   });
 
-  it("counts local scoped field data and sync queues", async () => {
-    await database.organizationMembers.put(organizationMember);
+  it("counts only personal local workspace data", async () => {
+    await database.organizations.bulkPut([organization, otherOrganization]);
+    await database.organizationMembers.bulkPut([
+      organizationMember,
+      otherOrganizationMember,
+    ]);
+    await database.agents.bulkPut([
+      agent,
+      {
+        ...agent,
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        organizationId: otherOrganizationId,
+      },
+    ]);
+    await database.buildingSectors.bulkPut([
+      sector,
+      {
+        ...sector,
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        organizationId: otherOrganizationId,
+      },
+    ]);
     await database.buildings.bulkPut([
       building,
       {
         ...building,
-        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
         organizationId: otherOrganizationId,
       },
     ]);
     await database.controls.bulkPut([
       createControl(),
       createControl({
-        completedAt: now,
+        completedAt: midday,
         id: completedControlId,
         status: "completed",
       }),
+      createControl({
+        completedAt: yesterday,
+        id: historyControlId,
+        startedAt: yesterday,
+        status: "completed",
+      }),
+      createControl({
+        completedAt: midday,
+        id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+        organizationId: otherOrganizationId,
+        status: "completed",
+      }),
     ]);
-    await database.correctiveActions.put(correctiveAction);
-    await saveControlPhoto({
-      blob: new Blob(["photo"], { type: "image/jpeg" }),
-      controlId,
-      createId: createIdFactory([photoId, uploadId]),
+
+    const diagnostics = await getLocalDiagnostics({
       database,
-      fileName: "hall.jpg",
-      now: () => now,
+      now: () => midday,
       userId,
     });
-    await saveLocalMutation({
-      clientMutationId: mutationId,
-      createId: createIdFactory([operationId]),
-      database,
-      entity: "buildings",
-      now: () => now,
-      record: building,
-      schema: buildingSchema,
-      table: database.buildings,
-    });
-
-    const diagnostics = await getLocalDiagnostics({ database, userId });
 
     expect(diagnostics).toMatchObject({
+      agentCount: 1,
       buildingCount: 1,
-      completedControlCount: 1,
       draftControlCount: 1,
-      localPhotoCount: 1,
-      openCorrectiveActionCount: 1,
-      organizationCount: 1,
-      outbox: {
-        pending: 1,
-      },
-      photoUploads: {
-        pending: 1,
-      },
+      historyControlCount: 1,
+      sectorCount: 1,
+      todayControlCount: 1,
     });
-    expect(getPendingSyncCount(diagnostics)).toBe(2);
-    expect(getSyncErrorCount(diagnostics)).toBe(0);
   });
 });

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useLocalDayKey } from "@/lib/hooks/use-local-day-key";
 import type {
   ListControlHistoryForUserOptions,
   LocalControlHistorySummary,
@@ -19,13 +20,15 @@ type LiveQuerySubscription = {
 
 type UseLocalControlHistoryOptions = Pick<
   ListControlHistoryForUserOptions,
-  "limit" | "userId"
+  "limit" | "searchQuery" | "userId"
 >;
 
 export function useLocalControlHistory({
   limit,
+  searchQuery,
   userId,
 }: UseLocalControlHistoryOptions): LocalControlHistoryState {
+  const localDayKey = useLocalDayKey();
   const [state, setState] = useState<LocalControlHistoryState>({
     controls: [],
     error: null,
@@ -53,7 +56,11 @@ export function useLocalControlHistory({
 
         subscription = dexieModule
           .liveQuery(() =>
-            localControlsModule.listControlHistoryForUser({ limit, userId }),
+            localControlsModule.listControlHistoryForUser({
+              limit,
+              searchQuery,
+              userId,
+            }),
           )
           .subscribe({
             error: (error: unknown) => {
@@ -88,7 +95,7 @@ export function useLocalControlHistory({
       isCanceled = true;
       subscription?.unsubscribe();
     };
-  }, [limit, userId]);
+  }, [limit, localDayKey, searchQuery, userId]);
 
   return state;
 }

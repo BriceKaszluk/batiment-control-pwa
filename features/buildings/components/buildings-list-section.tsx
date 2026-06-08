@@ -120,12 +120,13 @@ export function BuildingsListSection({
       </div>
       {searchBar}
       <div className="motion-list space-y-3">
-        {entries.map(({ agent, building, priorityScore }) => (
+        {entries.map(({ agent, building, priorityScore, recentCompletedControls }) => (
           <BuildingListItem
             agent={agent}
             building={building}
             key={building.id}
             priorityScore={priorityScore}
+            recentCompletedControls={recentCompletedControls}
             userId={userId}
           />
         ))}

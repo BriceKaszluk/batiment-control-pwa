@@ -17,6 +17,10 @@ import {
   serviceTasks,
   weekDays,
 } from "@/lib/domain/options";
+import {
+  capitalizeWords,
+  capitalizeWordStarts,
+} from "@/lib/text/capitalize-words";
 import type { Building, BuildingCreateInput } from "@/types/domain";
 
 type BuildingFormMode = "create" | "edit";
@@ -248,9 +252,13 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
         <label className="block space-y-2 text-sm font-medium">
           <span>Nom du batiment</span>
           <input
+            autoCapitalize="words"
             className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+            onBlur={() => {
+              setName(capitalizeWords(name));
+            }}
             onChange={(event) => {
-              setName(event.target.value);
+              setName(capitalizeWordStarts(event.target.value));
             }}
             value={name}
           />
@@ -276,10 +284,14 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
         <label className="block space-y-2 text-sm font-medium">
           <span>Secteur</span>
           <input
+            autoCapitalize="words"
             className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
             list={sectorOptionsId}
+            onBlur={() => {
+              setSector(capitalizeWords(sector));
+            }}
             onChange={(event) => {
-              setSector(event.target.value);
+              setSector(capitalizeWordStarts(event.target.value));
             }}
             value={sector}
           />

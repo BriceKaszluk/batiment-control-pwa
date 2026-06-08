@@ -157,7 +157,6 @@ describe("local control detail", () => {
         },
       ],
       control,
-      correctiveActions: [],
       photos: [],
     });
   });

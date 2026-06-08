@@ -5,6 +5,7 @@ import { db } from "@/lib/db/dexie";
 import { saveLocalMutation } from "@/lib/sync/local-mutation";
 import { buildingCreateSchema, buildingSchema } from "@/lib/validation/schemas";
 import { ensureBuildingSector } from "@/features/buildings/services/local-sectors";
+import { capitalizeWords } from "@/lib/text/capitalize-words";
 import type { Agent } from "@/types/domain";
 import type { Building, BuildingCreateInput } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
@@ -71,7 +72,9 @@ export async function createBuilding({
     throw new Error("Organisation locale non autorisee.");
   }
 
-  const parsedBuildingInput = buildingCreateSchema.parse(input);
+  const parsedBuildingInput = buildingCreateSchema.parse(
+    normalizeBuildingInput(input),
+  );
   await ensureBuildingSector({
     database,
     name: parsedBuildingInput.sector,
@@ -146,7 +149,9 @@ export async function updateBuilding({
     throw new Error("Organisation locale non autorisee.");
   }
 
-  const parsedBuildingInput = buildingCreateSchema.parse(input);
+  const parsedBuildingInput = buildingCreateSchema.parse(
+    normalizeBuildingInput(input),
+  );
   await ensureBuildingSector({
     database,
     name: parsedBuildingInput.sector,
@@ -176,6 +181,17 @@ export async function updateBuilding({
     schema: buildingSchema,
     table: database.buildings,
   });
+}
+
+function normalizeBuildingInput(input: BuildingCreateInput): BuildingCreateInput {
+  return {
+    ...input,
+    assignedAgentName: input.assignedAgentName
+      ? capitalizeWords(input.assignedAgentName)
+      : input.assignedAgentName,
+    name: capitalizeWords(input.name),
+    sector: capitalizeWords(input.sector),
+  };
 }
 
 async function enrichBuildingInputWithAgent({

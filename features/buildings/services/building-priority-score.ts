@@ -4,7 +4,6 @@ import type {
   Building,
   ChecklistResult,
   Control,
-  CorrectiveAction,
 } from "@/types/domain";
 
 export type BuildingPriorityScoreLevel =
@@ -16,7 +15,6 @@ export type BuildingPriorityScoreLevel =
 export type BuildingPriorityScoreFactorKey =
   | "controlDelay"
   | "quality"
-  | "correctiveActions"
   | "buildingPriority";
 
 export type BuildingPriorityScoreFactor = {
@@ -39,25 +37,21 @@ export type CalculateBuildingPriorityScoreInput = {
   latestCompletedControl?: Control | null;
   latestChecklistResults?: ChecklistResult[];
   now?: string;
-  openCorrectiveActions?: CorrectiveAction[];
 };
 
-const maxControlDelayPoints = 45;
-const maxQualityPoints = 25;
-const maxCorrectiveActionPoints = 20;
-const maxBuildingPriorityPoints = 10;
+const maxControlDelayPoints = 55;
+const maxQualityPoints = 30;
+const maxBuildingPriorityPoints = 15;
 
 export function calculateBuildingPriorityScore({
   building,
   latestChecklistResults = [],
   latestCompletedControl = null,
   now = new Date().toISOString(),
-  openCorrectiveActions = [],
 }: CalculateBuildingPriorityScoreInput): BuildingPriorityScore {
   const factors = [
     getControlDelayFactor({ building, latestCompletedControl, now }),
     getQualityFactor({ latestChecklistResults, latestCompletedControl }),
-    getCorrectiveActionFactor({ now, openCorrectiveActions }),
     getBuildingPriorityFactor(building.priorityLevel),
   ];
   const score = clampScore(
@@ -133,13 +127,13 @@ function getControlDelayFactor({
   const daysSinceControl = getElapsedDays(lastControlAt, now);
   const points =
     daysSinceControl >= 90
-      ? 45
+      ? 55
       : daysSinceControl >= 60
-        ? 35
+        ? 42
         : daysSinceControl >= 30
-          ? 20
+          ? 25
           : daysSinceControl >= 14
-            ? 10
+            ? 12
             : 0;
 
   return {
@@ -188,11 +182,11 @@ function getQualityFactor({
     checkedResults.length > 0 ? nonCompliantCount / checkedResults.length : 0;
   const points =
     nonCompliantRatio >= 0.5
-      ? 20
+      ? 25
       : nonCompliantRatio >= 0.2
-        ? 12
+        ? 15
         : nonCompliantCount > 0
-          ? 6
+          ? 7
           : 0;
 
   return {
@@ -207,63 +201,14 @@ function getQualityFactor({
   };
 }
 
-function getCorrectiveActionFactor({
-  now,
-  openCorrectiveActions,
-}: {
-  now: string;
-  openCorrectiveActions: CorrectiveAction[];
-}): BuildingPriorityScoreFactor {
-  if (openCorrectiveActions.length === 0) {
-    return {
-      description: "Aucune reprise ouverte",
-      key: "correctiveActions",
-      label: "Reprises",
-      maxPoints: maxCorrectiveActionPoints,
-      points: 0,
-    };
-  }
-
-  const today = now.slice(0, 10);
-  const overdueCount = openCorrectiveActions.filter(
-    (action) => action.dueDate !== null && action.dueDate < today,
-  ).length;
-  const rawPoints = openCorrectiveActions.reduce((total, action) => {
-    if (action.dueDate !== null && action.dueDate < today) {
-      return total + 10;
-    }
-
-    if (action.priority === "high") {
-      return total + 8;
-    }
-
-    if (action.priority === "normal") {
-      return total + 6;
-    }
-
-    return total + 4;
-  }, 0);
-
-  return {
-    description:
-      overdueCount > 0
-        ? `${openCorrectiveActions.length} reprise ouverte dont ${overdueCount} en retard`
-        : `${openCorrectiveActions.length} reprise ouverte`,
-    key: "correctiveActions",
-    label: "Reprises",
-    maxPoints: maxCorrectiveActionPoints,
-    points: Math.min(maxCorrectiveActionPoints, rawPoints),
-  };
-}
-
 function getBuildingPriorityFactor(
   priorityLevel: Building["priorityLevel"],
 ): BuildingPriorityScoreFactor {
   const points = {
-    critical: 10,
-    high: 7,
+    critical: 15,
+    high: 10,
     low: 0,
-    normal: 3,
+    normal: 4,
   } satisfies Record<Building["priorityLevel"], number>;
 
   return {
@@ -279,15 +224,15 @@ function getQualityRatingPoints(
   qualityRating: NonNullable<Control["qualityRating"]>,
 ) {
   if (qualityRating === "unsatisfying") {
-    return 25;
+    return 30;
   }
 
   if (qualityRating === "to_improve") {
-    return 16;
+    return 20;
   }
 
   if (qualityRating === "acceptable") {
-    return 8;
+    return 10;
   }
 
   return 0;

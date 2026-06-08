@@ -2,78 +2,49 @@
 
 import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
-import { createOutboxService } from "@/lib/sync/outbox";
-import { createPhotoUploadQueueService } from "@/lib/sync/photo-upload-queue";
-import { getControlLifecyclePreview } from "@/features/controls/services/control-lifecycle";
-import type { OutboxStatusSummary } from "@/types/sync";
-
-export {
-  getPendingSyncCount,
-  getSyncErrorCount,
-} from "@/features/settings/services/diagnostic-summary";
+import { listPersonalOrganizationsForUser } from "@/features/buildings/services/personal-workspace";
+import type { Control } from "@/types/domain";
 
 export type LocalDiagnostics = {
-  archivedControlCount: number;
-  blockedLifecycleControlCount: number;
+  agentCount: number;
   buildingCount: number;
-  completedControlCount: number;
   draftControlCount: number;
-  localPhotoCount: number;
-  openCorrectiveActionCount: number;
-  organizationCount: number;
-  outbox: OutboxStatusSummary;
-  photoUploads: OutboxStatusSummary;
-  purgeablePhotoControlCount: number;
-  purgeablePhotoCount: number;
+  historyControlCount: number;
+  sectorCount: number;
+  todayControlCount: number;
 };
 
 export type GetLocalDiagnosticsOptions = {
   database?: BatimentControlDatabase;
+  now?: () => string;
   userId: string | null;
-};
-
-const emptySummary: OutboxStatusSummary = {
-  error: 0,
-  pending: 0,
-  processing: 0,
-  synced: 0,
 };
 
 export async function getLocalDiagnostics({
   database = db,
+  now = () => new Date().toISOString(),
   userId,
 }: GetLocalDiagnosticsOptions): Promise<LocalDiagnostics> {
-  const [outbox, photoUploads, lifecyclePreview] = await Promise.all([
-    createOutboxService(database).countByStatus(),
-    createPhotoUploadQueueService(database).countByStatus(),
-    getControlLifecyclePreview({ database, userId }),
-  ]);
-
   if (!userId) {
-    return {
-      ...createEmptyDiagnostics(),
-      outbox,
-      photoUploads,
-    };
+    return createEmptyDiagnostics();
   }
 
-  const organizationMembers = await database.organizationMembers
-    .where("userId")
-    .equals(userId)
-    .toArray();
-  const organizationIds = [
-    ...new Set(organizationMembers.map((member) => member.organizationId)),
-  ];
+  const organizations = await listPersonalOrganizationsForUser({
+    database,
+    userId,
+  });
+  const organizationIds = organizations.map((organization) => organization.id);
 
   if (organizationIds.length === 0) {
-    return {
-      ...createEmptyDiagnostics(),
-      outbox,
-      photoUploads,
-    };
+    return createEmptyDiagnostics();
   }
 
-  const [buildings, controls, correctiveActions, photos] = await Promise.all([
+  const [agents, buildings, controls, sectors] = await Promise.all([
+    database.agents
+      .where("organizationId")
+      .anyOf(organizationIds)
+      .filter((agent) => agent.deletedAt === null)
+      .toArray(),
     database.buildings
       .where("organizationId")
       .anyOf(organizationIds)
@@ -84,53 +55,67 @@ export async function getLocalDiagnostics({
       .anyOf(organizationIds)
       .filter((control) => control.deletedAt === null)
       .toArray(),
-    database.correctiveActions
+    database.buildingSectors
       .where("organizationId")
       .anyOf(organizationIds)
-      .filter((action) => action.deletedAt === null)
-      .toArray(),
-    database.controlPhotos
-      .where("organizationId")
-      .anyOf(organizationIds)
-      .filter((photo) => photo.deletedAt === null)
+      .filter((sector) => sector.deletedAt === null)
       .toArray(),
   ]);
 
   return {
-    archivedControlCount: lifecyclePreview.archivedControlCount,
-    blockedLifecycleControlCount: lifecyclePreview.blockedControlCount,
+    agentCount: agents.length,
     buildingCount: buildings.length,
-    completedControlCount: controls.filter(
-      (control) =>
-        control.archivedAt === null && control.status === "completed",
-    ).length,
     draftControlCount: controls.filter((control) => control.status === "draft")
       .length,
-    localPhotoCount: photos.length,
-    openCorrectiveActionCount: correctiveActions.filter(
-      (action) => action.status === "open" || action.status === "in_progress",
+    historyControlCount: controls.filter((control) =>
+      isVisibleHistoryControl(control, now()),
     ).length,
-    organizationCount: organizationIds.length,
-    outbox,
-    photoUploads,
-    purgeablePhotoControlCount: lifecyclePreview.purgeablePhotoControlCount,
-    purgeablePhotoCount: lifecyclePreview.purgeablePhotoCount,
+    sectorCount: sectors.length,
+    todayControlCount: controls.filter((control) => isCompletedToday(control, now()))
+      .length,
+  };
+}
+
+function isCompletedToday(control: Control, now: string) {
+  if (control.status !== "completed" || !control.completedAt) {
+    return false;
+  }
+
+  const { endOfDayMs, startOfDayMs } = getLocalDayBounds(now);
+  const completedAtMs = Date.parse(control.completedAt);
+
+  return completedAtMs >= startOfDayMs && completedAtMs < endOfDayMs;
+}
+
+function isVisibleHistoryControl(control: Control, now: string) {
+  return (
+    control.archivedAt === null &&
+    control.status === "completed" &&
+    !isCompletedToday(control, now)
+  );
+}
+
+function getLocalDayBounds(value: string) {
+  const date = new Date(value);
+  const startOfDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+
+  return {
+    endOfDayMs: startOfDay.getTime() + 86_400_000,
+    startOfDayMs: startOfDay.getTime(),
   };
 }
 
 function createEmptyDiagnostics(): LocalDiagnostics {
   return {
-    archivedControlCount: 0,
-    blockedLifecycleControlCount: 0,
+    agentCount: 0,
     buildingCount: 0,
-    completedControlCount: 0,
     draftControlCount: 0,
-    localPhotoCount: 0,
-    openCorrectiveActionCount: 0,
-    organizationCount: 0,
-    outbox: emptySummary,
-    photoUploads: emptySummary,
-    purgeablePhotoControlCount: 0,
-    purgeablePhotoCount: 0,
+    historyControlCount: 0,
+    sectorCount: 0,
+    todayControlCount: 0,
   };
 }

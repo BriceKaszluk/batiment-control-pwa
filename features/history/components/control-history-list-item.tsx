@@ -1,4 +1,4 @@
-import { Camera, CheckSquare, ClipboardList, Wrench } from "lucide-react";
+import { Camera, CheckSquare, ClipboardList } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,13 @@ type ControlHistoryListItemProps = {
 export function ControlHistoryListItem({
   summary,
 }: Readonly<ControlHistoryListItemProps>) {
-  const { building, checklistResultCount, control, correctiveActionCount, photoCount } =
-    summary;
+  const { building, checklistResultCount, control, photoCount } = summary;
 
   return (
-    <article className="surface-card space-y-4 p-4">
+    <article
+      className="surface-card scroll-mt-24 space-y-4 p-4"
+      id={`controle-${control.id}`}
+    >
       <div className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -40,9 +42,8 @@ export function ControlHistoryListItem({
         ) : null}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 text-center text-xs font-medium text-muted-foreground">
+      <div className="grid grid-cols-2 gap-2 text-center text-xs font-medium text-muted-foreground">
         <Metric icon={CheckSquare} label="Points" value={checklistResultCount} />
-        <Metric icon={Wrench} label="Reprises" value={correctiveActionCount} />
         <Metric icon={Camera} label="Photos" value={photoCount} />
       </div>
 

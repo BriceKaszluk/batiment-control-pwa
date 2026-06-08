@@ -5,6 +5,7 @@ import { db } from "@/lib/db/dexie";
 import { saveLocalMutation } from "@/lib/sync/local-mutation";
 import { agentCreateSchema, agentSchema } from "@/lib/validation/schemas";
 import { listPersonalOrganizationsForUser } from "@/features/buildings/services/personal-workspace";
+import { capitalizeWords } from "@/lib/text/capitalize-words";
 import type { Agent, AgentCreateInput } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
 
@@ -94,7 +95,7 @@ export async function createAgent({
     throw new Error("Organisation locale non autorisee.");
   }
 
-  const parsedInput = agentCreateSchema.parse(input);
+  const parsedInput = agentCreateSchema.parse(normalizeAgentInput(input));
   const timestamp = now();
   const agent = agentSchema.parse({
     ...parsedInput,
@@ -156,7 +157,7 @@ export async function updateAgent({
     throw new Error("Organisation locale non autorisee.");
   }
 
-  const parsedInput = agentCreateSchema.parse(input);
+  const parsedInput = agentCreateSchema.parse(normalizeAgentInput(input));
   const updatedAgent = agentSchema.parse({
     ...existingAgent,
     ...parsedInput,
@@ -173,4 +174,11 @@ export async function updateAgent({
     schema: agentSchema,
     table: database.agents,
   });
+}
+
+function normalizeAgentInput(input: AgentCreateInput): AgentCreateInput {
+  return {
+    ...input,
+    name: capitalizeWords(input.name),
+  };
 }

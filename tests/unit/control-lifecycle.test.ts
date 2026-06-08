@@ -11,7 +11,6 @@ import type {
   Building,
   Control,
   ControlPhoto,
-  CorrectiveAction,
   OrganizationMember,
 } from "@/types/domain";
 
@@ -212,8 +211,9 @@ describe("control lifecycle", () => {
     });
   });
 
-  it("does not archive or purge a control with an open corrective action", async () => {
-    const action: CorrectiveAction = {
+  it("archives old controls even if legacy corrective actions exist", async () => {
+    await database.controls.put(createCompletedControl());
+    await database.correctiveActions.put({
       assignedTo: null,
       buildingId,
       controlId,
@@ -229,28 +229,31 @@ describe("control lifecycle", () => {
       status: "open",
       title: "Reprise hall",
       updatedAt: old,
-    };
-
-    await database.controls.put(createCompletedControl());
-    await database.correctiveActions.put(action);
+    });
 
     await expect(
       getControlLifecyclePreview({ database, now: () => now, userId }),
     ).resolves.toMatchObject({
-      blockedControlCount: 1,
+      archivableControlCount: 1,
+      blockedControlCount: 0,
     });
 
     const result = await applyControlLifecyclePolicy({
+      createId: createIdFactory([
+        "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      ]),
       database,
       now: () => now,
       userId,
     });
 
-    expect(result.archivedNowCount).toBe(0);
+    expect(result.archivedNowCount).toBe(1);
     await expect(database.controls.get(controlId)).resolves.toMatchObject({
-      archivedAt: null,
+      archivedAt: now,
       photosPurgedAt: null,
     });
-    await expect(database.outbox.count()).resolves.toBe(0);
+    await expect(database.outbox.count()).resolves.toBe(2);
   });
 });

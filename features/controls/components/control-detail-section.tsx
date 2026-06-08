@@ -5,7 +5,6 @@ import { AlertTriangle, Building2, Loader2 } from "lucide-react";
 import { ChecklistResultEditor } from "@/features/controls/components/checklist-result-editor";
 import { CompleteControlButton } from "@/features/controls/components/complete-control-button";
 import { ControlCommentEditor } from "@/features/controls/components/control-comment-editor";
-import { ControlCorrectiveActionsSection } from "@/features/controls/components/control-corrective-actions-section";
 import { ControlPhotosSection } from "@/features/controls/components/control-photos-section";
 import { ControlQualityRatingEditor } from "@/features/controls/components/control-quality-rating-editor";
 import { useLocalControlDetail } from "@/features/controls/hooks/use-local-control-detail";
@@ -96,13 +95,6 @@ export function ControlDetailSection({
           ))}
         </div>
       )}
-
-      <ControlCorrectiveActionsSection
-        actions={detail.correctiveActions}
-        buildingName={detail.building?.name}
-        controlId={detail.control.id}
-        userId={userId}
-      />
 
       <CompleteControlButton control={detail.control} userId={userId} />
     </section>

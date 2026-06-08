@@ -10,7 +10,7 @@ export default async function SettingsPage() {
       <PageHeader
         eyebrow="Compte"
         title="Parametres"
-        description="Etat local et synchronisation."
+        description="Resume de votre espace local."
       />
       <LocalDiagnosticsSection
         authConfigured={authState.isConfigured}

@@ -11,7 +11,6 @@ import type {
   Building,
   ChecklistResult,
   Control,
-  CorrectiveAction,
   Organization,
 } from "@/types/domain";
 
@@ -34,6 +33,7 @@ export type BuildingListEntry = {
   agent: Agent | null;
   building: Building;
   priorityScore: BuildingPriorityScore;
+  recentCompletedControls: Control[];
 };
 
 export async function listBuildingsForUser({
@@ -87,6 +87,8 @@ export async function listBuildingEntriesForUser({
       now: now(),
       ...scoreContextsByBuildingId.get(building.id),
     }),
+    recentCompletedControls:
+      scoreContextsByBuildingId.get(building.id)?.recentCompletedControls ?? [],
   }));
   const matchingEntries = filterBuildingEntriesBySearchQuery({
     entries: scoredEntries,
@@ -176,7 +178,7 @@ async function getAgentsById({
 type BuildingScoreContext = {
   latestChecklistResults: ChecklistResult[];
   latestCompletedControl: Control | null;
-  openCorrectiveActions: CorrectiveAction[];
+  recentCompletedControls: Control[];
 };
 
 async function getScoreContextsByBuildingId({
@@ -193,7 +195,7 @@ async function getScoreContextsByBuildingId({
       {
         latestChecklistResults: [],
         latestCompletedControl: null,
-        openCorrectiveActions: [],
+        recentCompletedControls: [],
       },
     ]),
   );
@@ -202,44 +204,38 @@ async function getScoreContextsByBuildingId({
     return contextByBuildingId;
   }
 
-  const [controls, correctiveActions] = await Promise.all([
-    database.controls
-      .where("buildingId")
-      .anyOf(buildingIds)
-      .filter(
-        (control) =>
-          control.deletedAt === null &&
-          control.status === "completed" &&
-          control.completedAt !== null,
-      )
-      .toArray(),
-    database.correctiveActions
-      .where("buildingId")
-      .anyOf(buildingIds)
-      .filter(
-        (action) =>
-          action.deletedAt === null &&
-          (action.status === "open" || action.status === "in_progress"),
-      )
-      .toArray(),
-  ]);
-  const latestControlByBuildingId = new Map<string, Control>();
+  const controls = await database.controls
+    .where("buildingId")
+    .anyOf(buildingIds)
+    .filter(
+      (control) =>
+        control.deletedAt === null &&
+        control.status === "completed" &&
+        control.completedAt !== null,
+    )
+    .toArray();
+  const controlsByBuildingId = new Map<string, Control[]>();
 
   for (const control of controls) {
-    const currentControl = latestControlByBuildingId.get(control.buildingId);
+    const existingControls = controlsByBuildingId.get(control.buildingId) ?? [];
+    existingControls.push(control);
+    controlsByBuildingId.set(control.buildingId, existingControls);
+  }
 
-    if (
-      !currentControl ||
-      Date.parse(control.completedAt ?? control.startedAt) >
-        Date.parse(currentControl.completedAt ?? currentControl.startedAt)
-    ) {
-      latestControlByBuildingId.set(control.buildingId, control);
+  for (const [buildingId, buildingControls] of controlsByBuildingId) {
+    const context = contextByBuildingId.get(buildingId);
+    const sortedControls = buildingControls.sort(compareControlsByCompletedAt);
+
+    if (context) {
+      context.latestCompletedControl = sortedControls[0] ?? null;
+      context.recentCompletedControls = sortedControls.slice(0, 3);
     }
   }
 
-  const latestControlIds = [...latestControlByBuildingId.values()].map(
-    (control) => control.id,
-  );
+  const latestCompletedControls = [...contextByBuildingId.values()]
+    .map((context) => context.latestCompletedControl)
+    .filter((control): control is Control => control !== null);
+  const latestControlIds = latestCompletedControls.map((control) => control.id);
   const checklistResults =
     latestControlIds.length > 0
       ? await database.checklistResults
@@ -248,26 +244,27 @@ async function getScoreContextsByBuildingId({
           .toArray()
       : [];
 
-  for (const control of latestControlByBuildingId.values()) {
+  for (const control of latestCompletedControls) {
     const context = contextByBuildingId.get(control.buildingId);
 
     if (context) {
-      context.latestCompletedControl = control;
       context.latestChecklistResults = checklistResults.filter(
         (result) => result.controlId === control.id,
       );
     }
   }
 
-  for (const action of correctiveActions) {
-    const context = contextByBuildingId.get(action.buildingId);
-
-    if (context) {
-      context.openCorrectiveActions.push(action);
-    }
-  }
-
   return contextByBuildingId;
+}
+
+function compareControlsByCompletedAt(
+  firstControl: Control,
+  secondControl: Control,
+) {
+  return (
+    Date.parse(secondControl.completedAt ?? secondControl.startedAt) -
+    Date.parse(firstControl.completedAt ?? firstControl.startedAt)
+  );
 }
 
 export function compareBuildingEntriesByPriorityScore(

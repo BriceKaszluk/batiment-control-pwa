@@ -13,7 +13,6 @@ describe("mobile navigation", () => {
       "/batiments",
       "/agents",
       "/controles",
-      "/reprises",
       "/historique",
       "/parametres",
     ]);

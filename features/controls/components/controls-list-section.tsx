@@ -45,7 +45,7 @@ export function ControlsListSection({
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">{title}</h2>
         <div className="flex min-h-28 items-center justify-center rounded-md border bg-muted px-4 text-center text-sm text-muted-foreground">
-          Aucun controle local
+          Aucun brouillon ou controle termine ce jour
         </div>
       </section>
     );

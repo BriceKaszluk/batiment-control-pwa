@@ -14,6 +14,8 @@ import type { Building, Control, OrganizationMember } from "@/types/domain";
 
 const now = "2026-05-31T00:00:00.000Z";
 const later = "2026-05-31T01:00:00.000Z";
+const midday = "2026-05-31T12:00:00.000Z";
+const yesterday = "2026-05-30T12:00:00.000Z";
 const organizationId = "11111111-1111-4111-8111-111111111111";
 const userId = "22222222-2222-4222-8222-222222222222";
 const buildingId = "33333333-3333-4333-8333-333333333333";
@@ -189,11 +191,19 @@ describe("local controls", () => {
     await expect(database.outbox.count()).resolves.toBe(0);
   });
 
-  it("lists local controls for the current user organizations", async () => {
-    const recentControl = createControl({ id: controlId, startedAt: later });
-    const olderControl = createControl({
+  it("lists draft controls and controls completed today", async () => {
+    const draftControl = createControl({ id: controlId, startedAt: later });
+    const completedTodayControl = createControl({
+      completedAt: later,
       id: "77777777-7777-4777-8777-777777777777",
       startedAt: now,
+      status: "completed",
+    });
+    const completedYesterdayControl = createControl({
+      completedAt: yesterday,
+      id: "99999999-9999-4999-8999-999999999999",
+      startedAt: yesterday,
+      status: "completed",
     });
     const deletedControl = createControl({
       deletedAt: later,
@@ -203,18 +213,23 @@ describe("local controls", () => {
 
     await database.organizationMembers.put(organizationMember);
     await database.buildings.put(building);
-    await database.controls.bulkPut([olderControl, deletedControl, recentControl]);
+    await database.controls.bulkPut([
+      completedTodayControl,
+      completedYesterdayControl,
+      deletedControl,
+      draftControl,
+    ]);
 
     await expect(
-      listControlsForUser({ database, userId }),
+      listControlsForUser({ database, now: () => midday, userId }),
     ).resolves.toEqual([
       {
         building,
-        control: recentControl,
+        control: draftControl,
       },
       {
         building,
-        control: olderControl,
+        control: completedTodayControl,
       },
     ]);
   });
@@ -285,17 +300,25 @@ describe("local controls", () => {
     await expect(database.outbox.count()).resolves.toBe(0);
   });
 
-  it("lists only completed controls in local history", async () => {
-    const completedControl = createControl({
+  it("lists only completed controls before today in local history", async () => {
+    const completedTodayControl = createControl({
       completedAt: later,
       status: "completed",
       updatedAt: later,
     });
-    const olderCompletedControl = createControl({
-      completedAt: now,
+    const completedYesterdayControl = createControl({
+      completedAt: yesterday,
       id: "77777777-7777-4777-8777-777777777777",
+      startedAt: yesterday,
       status: "completed",
-      updatedAt: now,
+      updatedAt: yesterday,
+    });
+    const olderCompletedControl = createControl({
+      completedAt: "2026-05-01T00:00:00.000Z",
+      id: "99999999-9999-4999-8999-999999999999",
+      startedAt: "2026-05-01T00:00:00.000Z",
+      status: "completed",
+      updatedAt: "2026-05-01T00:00:00.000Z",
     });
     const draftControl = createControl({
       id: "88888888-8888-4888-8888-888888888888",
@@ -306,24 +329,79 @@ describe("local controls", () => {
     await database.controls.bulkPut([
       olderCompletedControl,
       draftControl,
-      completedControl,
+      completedTodayControl,
+      completedYesterdayControl,
     ]);
 
     await expect(
-      listControlHistoryForUser({ database, userId }),
+      listControlHistoryForUser({ database, now: () => midday, userId }),
     ).resolves.toEqual([
       {
         building,
         checklistResultCount: 0,
-        control: completedControl,
-        correctiveActionCount: 0,
+        control: completedYesterdayControl,
         photoCount: 0,
       },
       {
         building,
         checklistResultCount: 0,
         control: olderCompletedControl,
-        correctiveActionCount: 0,
+        photoCount: 0,
+      },
+    ]);
+  });
+
+  it("searches local history by building, comment, rating or date", async () => {
+    const matchingControl = createControl({
+      completedAt: yesterday,
+      generalComment: "Vitres sensibles a surveiller",
+      id: "77777777-7777-4777-8777-777777777777",
+      qualityRating: "unsatisfying",
+      startedAt: yesterday,
+      status: "completed",
+      updatedAt: yesterday,
+    });
+    const otherControl = createControl({
+      completedAt: "2026-05-01T00:00:00.000Z",
+      generalComment: "Hall propre",
+      id: "88888888-8888-4888-8888-888888888888",
+      qualityRating: "satisfying",
+      startedAt: "2026-05-01T00:00:00.000Z",
+      status: "completed",
+      updatedAt: "2026-05-01T00:00:00.000Z",
+    });
+
+    await database.organizationMembers.put(organizationMember);
+    await database.buildings.put(building);
+    await database.controls.bulkPut([otherControl, matchingControl]);
+
+    await expect(
+      listControlHistoryForUser({
+        database,
+        now: () => midday,
+        searchQuery: "insatisfaisant",
+        userId,
+      }),
+    ).resolves.toEqual([
+      {
+        building,
+        checklistResultCount: 0,
+        control: matchingControl,
+        photoCount: 0,
+      },
+    ]);
+    await expect(
+      listControlHistoryForUser({
+        database,
+        now: () => midday,
+        searchQuery: "vitres",
+        userId,
+      }),
+    ).resolves.toEqual([
+      {
+        building,
+        checklistResultCount: 0,
+        control: matchingControl,
         photoCount: 0,
       },
     ]);

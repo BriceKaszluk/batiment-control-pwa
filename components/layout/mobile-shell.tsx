@@ -11,6 +11,7 @@ import {
   navigationItems,
 } from "@/components/layout/navigation-items";
 import { signOut } from "@/features/auth/actions";
+import { useControlLifecyclePolicy } from "@/features/controls/hooks/use-control-lifecycle-policy";
 import { SyncStatusBar } from "@/features/sync/components/sync-status-bar";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,8 @@ export function MobileShell({
 }: Readonly<MobileShellProps>) {
   const pathname = usePathname();
   const currentItem = getCurrentNavigationItem(pathname);
+
+  useControlLifecyclePolicy({ userId });
 
   return (
     <div className="min-h-svh bg-background/80">

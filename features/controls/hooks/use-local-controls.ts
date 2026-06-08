@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { useLocalDayKey } from "@/lib/hooks/use-local-day-key";
 import type {
   ListControlsForUserOptions,
   LocalControlSummary,
@@ -26,6 +27,7 @@ export function useLocalControls({
   limit,
   userId,
 }: UseLocalControlsOptions): LocalControlsState {
+  const localDayKey = useLocalDayKey();
   const [state, setState] = useState<LocalControlsState>({
     controls: [],
     error: null,
@@ -88,7 +90,7 @@ export function useLocalControls({
       isCanceled = true;
       subscription?.unsubscribe();
     };
-  }, [limit, userId]);
+  }, [limit, localDayKey, userId]);
 
   return state;
 }

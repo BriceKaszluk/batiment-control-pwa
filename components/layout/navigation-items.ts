@@ -3,7 +3,6 @@ import {
   ClipboardCheck,
   History,
   Home,
-  RotateCcw,
   Settings,
   Users,
   type LucideIcon,
@@ -20,7 +19,6 @@ export const navigationItems: readonly NavigationItem[] = [
   { href: "/batiments", label: "Batiments", icon: Building2 },
   { href: "/agents", label: "Agents", icon: Users },
   { href: "/controles", label: "Controles", icon: ClipboardCheck },
-  { href: "/reprises", label: "Reprises", icon: RotateCcw },
   { href: "/historique", label: "Historique", icon: History },
   { href: "/parametres", label: "Reglages", icon: Settings },
 ];

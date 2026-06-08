@@ -54,7 +54,7 @@ export function StartControlButton({
         ) : (
           <ClipboardCheck aria-hidden="true" className="size-4" />
         )}
-        Demarrer
+        Controler
       </Button>
       {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
     </div>

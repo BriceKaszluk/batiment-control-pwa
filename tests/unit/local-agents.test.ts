@@ -76,7 +76,7 @@ describe("local agents", () => {
       createId: createIdFactory([agentId, mutationId, operationId]),
       database,
       input: {
-        name: "Agent A",
+        name: "agent a",
         status: "present",
       },
       now: () => now,
@@ -107,7 +107,7 @@ describe("local agents", () => {
       createId: createIdFactory([agentId, mutationId, operationId]),
       database,
       input: {
-        name: "Agent A",
+        name: "agent a",
         status: "present",
       },
       now: () => now,
@@ -120,7 +120,7 @@ describe("local agents", () => {
       createId: createIdFactory([secondMutationId, secondOperationId]),
       database,
       input: {
-        name: "Agent A",
+        name: "agent malade",
         status: "sick_leave",
       },
       now: () => later,
@@ -129,6 +129,7 @@ describe("local agents", () => {
 
     expect(result.record).toMatchObject({
       id: agentId,
+      name: "Agent Malade",
       status: "sick_leave",
       updatedAt: later,
     });

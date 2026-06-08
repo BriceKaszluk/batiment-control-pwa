@@ -14,7 +14,6 @@ import type {
   ChecklistResult,
   Control,
   ControlPhoto,
-  CorrectiveAction,
 } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
 
@@ -32,7 +31,6 @@ export type LocalControlDetail = {
   building: Building | undefined;
   checklist: LocalChecklistEntry[];
   control: Control;
-  correctiveActions: CorrectiveAction[];
   photos: ControlPhoto[];
 };
 
@@ -98,13 +96,7 @@ export async function getLocalControlDetail({
     return null;
   }
 
-  const [
-    building,
-    checklistItems,
-    checklistResults,
-    correctiveActions,
-    photos,
-  ] = await Promise.all([
+  const [building, checklistItems, checklistResults, photos] = await Promise.all([
     database.buildings.get(control.buildingId),
     database.checklistItems
       .where("organizationId")
@@ -112,11 +104,6 @@ export async function getLocalControlDetail({
       .filter((item) => item.deletedAt === null && item.isActive)
       .toArray(),
     database.checklistResults.where("controlId").equals(control.id).toArray(),
-    database.correctiveActions
-      .where("controlId")
-      .equals(control.id)
-      .filter((action) => action.deletedAt === null)
-      .toArray(),
     database.controlPhotos
       .where("controlId")
       .equals(control.id)
@@ -136,7 +123,6 @@ export async function getLocalControlDetail({
         result: resultsByItemId.get(item.id),
       })),
     control,
-    correctiveActions: correctiveActions.sort(compareCorrectiveActions),
     photos: photos.sort(comparePhotos),
   };
 }
@@ -314,13 +300,6 @@ function compareChecklistItems(
   }
 
   return firstItem.label.localeCompare(secondItem.label, "fr");
-}
-
-function compareCorrectiveActions(
-  firstAction: CorrectiveAction,
-  secondAction: CorrectiveAction,
-) {
-  return Date.parse(secondAction.createdAt) - Date.parse(firstAction.createdAt);
 }
 
 function comparePhotos(firstPhoto: ControlPhoto, secondPhoto: ControlPhoto) {

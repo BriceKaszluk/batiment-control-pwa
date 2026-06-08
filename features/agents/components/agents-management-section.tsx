@@ -22,6 +22,10 @@ import {
 } from "@/features/agents/services/agent-labels";
 import { useUserOrganizations } from "@/features/buildings/hooks/use-user-organizations";
 import { agentStatuses } from "@/lib/domain/options";
+import {
+  capitalizeWords,
+  capitalizeWordStarts,
+} from "@/lib/text/capitalize-words";
 import { cn } from "@/lib/utils";
 import type { Agent, AgentCreateInput } from "@/types/domain";
 
@@ -138,9 +142,13 @@ export function AgentsManagementSection({
         <label className="block space-y-2 text-sm font-medium">
           <span>Nom de l&apos;agent</span>
           <input
+            autoCapitalize="words"
             className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+            onBlur={() => {
+              setName(capitalizeWords(name));
+            }}
             onChange={(event) => {
-              setName(event.target.value);
+              setName(capitalizeWordStarts(event.target.value));
             }}
             value={name}
           />
@@ -330,9 +338,13 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
           <label className="block space-y-2 text-sm font-medium">
             <span>Nom</span>
             <input
+              autoCapitalize="words"
               className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
+              onBlur={() => {
+                setName(capitalizeWords(name));
+              }}
               onChange={(event) => {
-                setName(event.target.value);
+                setName(capitalizeWordStarts(event.target.value));
               }}
               value={name}
             />

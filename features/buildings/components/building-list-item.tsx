@@ -2,9 +2,11 @@
 
 import {
   Building2,
+  CalendarDays,
   ChevronDown,
   Clock3,
   Gauge,
+  History,
   MapPin,
   Pencil,
   UserRound,
@@ -29,7 +31,7 @@ import type {
   BuildingPriorityScore,
   BuildingPriorityScoreLevel,
 } from "@/features/buildings/services/building-priority-score";
-import type { Agent, Building } from "@/types/domain";
+import type { Agent, Building, Control } from "@/types/domain";
 
 const priorityToneClasses: Record<BuildingPriorityTone, string> = {
   critical: "border-red-300 bg-red-50 text-red-800",
@@ -55,6 +57,7 @@ type BuildingListItemProps = {
   agent: Agent | null;
   building: Building;
   priorityScore: BuildingPriorityScore;
+  recentCompletedControls: Control[];
   userId: string | null;
 };
 
@@ -62,8 +65,10 @@ export function BuildingListItem({
   agent,
   building,
   priorityScore,
+  recentCompletedControls,
   userId,
 }: Readonly<BuildingListItemProps>) {
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isScoreOpen, setIsScoreOpen] = useState(false);
   const priorityTone = getBuildingPriorityTone(building.priorityLevel);
   const agentStatus = agent?.status ?? building.agentStatus;
@@ -176,9 +181,101 @@ export function BuildingListItem({
           </button>
         </div>
       ) : null}
-      <div className="mt-4">
+      <div className="mt-4 grid grid-cols-2 gap-2">
         <StartControlButton building={building} userId={userId} />
+        <Button
+          aria-expanded={isHistoryOpen}
+          className="h-11 w-full"
+          onClick={() => {
+            setIsHistoryOpen((currentValue) => !currentValue);
+          }}
+          type="button"
+          variant="outline"
+        >
+          <History aria-hidden="true" className="size-4" />
+          Consulter
+        </Button>
       </div>
+      {isHistoryOpen ? (
+        <div className="motion-reveal mt-3 rounded-md border bg-muted/60 p-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold">Derniers controles</p>
+            <button
+              className="inline-flex items-center gap-1 text-sm font-medium text-primary"
+              onClick={() => {
+                setIsHistoryOpen(false);
+              }}
+              type="button"
+            >
+              Masquer
+              <ChevronDown aria-hidden="true" className="size-4 rotate-180" />
+            </button>
+          </div>
+          {recentCompletedControls.length === 0 ? (
+            <p className="rounded-md bg-background px-3 py-3 text-sm text-muted-foreground">
+              Aucun controle termine pour ce batiment.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {recentCompletedControls.map((control) => (
+                <Button
+                  asChild
+                  className="h-auto w-full justify-start px-3 py-3 text-left"
+                  key={control.id}
+                  variant="outline"
+                >
+                  <Link href={getControlLink(control)}>
+                    <CalendarDays
+                      aria-hidden="true"
+                      className="size-4 shrink-0 text-primary"
+                    />
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold">
+                        {formatControlDate(control.completedAt ?? control.startedAt)}
+                      </span>
+                      <span className="block text-xs font-medium text-muted-foreground">
+                        {isControlCompletedToday(control)
+                          ? "Voir le controle"
+                          : "Voir dans historique"}
+                      </span>
+                    </span>
+                  </Link>
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
     </article>
   );
+}
+
+function getControlLink(control: Control) {
+  if (isControlCompletedToday(control)) {
+    return `/controles/${control.id}`;
+  }
+
+  return `/historique#controle-${control.id}`;
+}
+
+function isControlCompletedToday(control: Control) {
+  if (!control.completedAt) {
+    return false;
+  }
+
+  const today = new Date();
+  const completedAt = new Date(control.completedAt);
+
+  return (
+    today.getFullYear() === completedAt.getFullYear() &&
+    today.getMonth() === completedAt.getMonth() &&
+    today.getDate() === completedAt.getDate()
+  );
+}
+
+function formatControlDate(value: string) {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }

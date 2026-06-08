@@ -125,7 +125,7 @@ describe("local building sectors", () => {
     expect(reactivatedSector).toMatchObject({
       deletedAt: null,
       id: sectorId,
-      name: "secteur nord",
+      name: "Secteur Nord",
     });
     await expect(database.outbox.get(thirdOperationId)).resolves.toMatchObject({
       aggregateId: sectorId,

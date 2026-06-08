@@ -10,10 +10,10 @@ export default async function ControlsPage() {
       <PageHeader
         eyebrow="Terrain"
         title="Controles"
-        description="Point d'entree des controles qualite."
+        description="Brouillons en cours et controles termines ce jour."
       />
       <ControlsListSection
-        title="Controles locaux"
+        title="Journee terrain"
         userId={authState.userId}
       />
     </div>

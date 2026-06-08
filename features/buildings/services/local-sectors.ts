@@ -8,6 +8,7 @@ import {
   buildingSectorSchema,
 } from "@/lib/validation/schemas";
 import { listPersonalOrganizationsForUser } from "@/features/buildings/services/personal-workspace";
+import { capitalizeWords } from "@/lib/text/capitalize-words";
 import type { BuildingSector } from "@/types/domain";
 import type { LocalMutationResult } from "@/types/sync";
 
@@ -81,7 +82,9 @@ export async function ensureBuildingSector({
     throw new Error("Organisation locale non autorisee.");
   }
 
-  const parsedInput = buildingSectorCreateSchema.parse({ name });
+  const parsedInput = buildingSectorCreateSchema.parse({
+    name: capitalizeWords(name),
+  });
   const existingSector = await findBuildingSectorByName({
     database,
     name: parsedInput.name,
