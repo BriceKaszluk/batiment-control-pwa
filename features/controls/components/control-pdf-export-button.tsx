@@ -15,6 +15,8 @@ type ShareNavigator = Navigator & {
   share?: (data: ShareData) => Promise<void>;
 };
 
+const pdfObjectUrlLifetimeMs = 60_000;
+
 export function ControlPdfExportButton({
   detail,
 }: Readonly<ControlPdfExportButtonProps>) {
@@ -84,21 +86,54 @@ async function exportPdf(detail: LocalControlDetail) {
   );
   const blob = await createControlPdfBlob(detail);
   const fileName = getControlPdfFileName(detail);
-  const file = new File([blob], fileName, { type: "application/pdf" });
   const shareNavigator = navigator as ShareNavigator;
-  const shareData: ShareData = {
-    files: [file],
-    text: "Synthese du controle batiment.",
-    title: fileName,
-  };
+  const file = createPdfFile(blob, fileName);
 
-  if (shareNavigator.share && shareNavigator.canShare?.(shareData)) {
-    await shareNavigator.share(shareData);
-    return "PDF pret a partager.";
+  if (file && canSharePdfFile(shareNavigator, file)) {
+    try {
+      await shareNavigator.share({
+        files: [file],
+        text: "Synthese du controle batiment.",
+        title: fileName,
+      });
+
+      return "PDF pret a partager ou enregistrer.";
+    } catch (error: unknown) {
+      if (isShareCanceled(error)) {
+        return "Partage annule.";
+      }
+    }
   }
 
   downloadBlob(blob, fileName);
-  return "PDF telecharge.";
+  return "PDF ouvert ou telecharge. Sur mobile, regarde aussi les telechargements.";
+}
+
+function createPdfFile(blob: Blob, fileName: string) {
+  if (typeof File === "undefined") {
+    return null;
+  }
+
+  return new File([blob], fileName, {
+    lastModified: Date.now(),
+    type: "application/pdf",
+  });
+}
+
+function canSharePdfFile(shareNavigator: ShareNavigator, file: File) {
+  if (!shareNavigator.share || !shareNavigator.canShare) {
+    return false;
+  }
+
+  try {
+    return shareNavigator.canShare({ files: [file] });
+  } catch {
+    return false;
+  }
+}
+
+function isShareCanceled(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
@@ -107,8 +142,12 @@ function downloadBlob(blob: Blob, fileName: string) {
 
   link.href = url;
   link.download = fileName;
+  link.rel = "noopener";
+  link.target = "_blank";
   document.body.append(link);
   link.click();
   link.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, pdfObjectUrlLifetimeMs);
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  createControlPdfBlob,
   getControlPdfFileName,
   sanitizeFileName,
 } from "@/features/controls/services/control-pdf-export";
@@ -65,5 +66,15 @@ describe("control PDF export", () => {
     expect(getControlPdfFileName(detail)).toBe(
       "controle-le-roux-batiment-a-08-06-2026.pdf",
     );
+  });
+
+  it("generates a readable PDF document", async () => {
+    const blob = await createControlPdfBlob(detail);
+    const headerBytes = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+    const header = String.fromCharCode(...headerBytes);
+
+    expect(blob.type).toBe("application/pdf");
+    expect(header).toBe("%PDF");
+    expect(blob.size).toBeGreaterThan(1_000);
   });
 });
