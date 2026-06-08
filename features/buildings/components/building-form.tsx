@@ -3,9 +3,10 @@
 import { AlertTriangle, Loader2, Save, Trash2, UserPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import type { z } from "zod";
 
+import { BlockingFormToast } from "@/components/feedback/blocking-form-toast";
 import { Button } from "@/components/ui/button";
 import { useLocalAgents } from "@/features/agents/hooks/use-local-agents";
 import { getAgentStatusLabel } from "@/features/agents/services/agent-labels";
@@ -17,6 +18,7 @@ import {
   serviceTasks,
   weekDays,
 } from "@/lib/domain/options";
+import { getBlockingFormMessage } from "@/lib/forms/validation-feedback";
 import {
   capitalizeWords,
   capitalizeWordStarts,
@@ -31,7 +33,8 @@ type BuildingFormProps = {
   userId: string | null;
 };
 
-type FieldErrors = Partial<Record<keyof BuildingCreateInput, string>>;
+type BuildingFieldName = Extract<keyof BuildingCreateInput, string>;
+type FieldErrors = Partial<Record<BuildingFieldName, string>>;
 
 const priorityLabels: Record<(typeof buildingPriorityLevels)[number], string> = {
   critical: "Critique",
@@ -76,6 +79,15 @@ const areaLabels: Record<(typeof buildingAreas)[number], string> = {
   stairs: "Montee escalier",
 };
 
+const buildingBlockingFieldMessages: Partial<
+  Record<BuildingFieldName, string>
+> = {
+  address: "L'adresse est requise.",
+  name: "Le nom du batiment est requis.",
+  sector: "Le secteur est requis.",
+  serviceDays: "Chaque jour de prestation doit contenir au moins une tache.",
+};
+
 export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormProps>) {
   const router = useRouter();
   const sectorOptionsId = useId();
@@ -105,10 +117,17 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [blockingToastMessage, setBlockingToastMessage] = useState<
+    string | null
+  >(null);
   const [sectorError, setSectorError] = useState<string | null>(null);
   const [deletingSectorId, setDeletingSectorId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const dismissBlockingToast = useCallback(() => {
+    setBlockingToastMessage(null);
+  }, []);
 
   useEffect(() => {
     if (isEdit) {
@@ -201,7 +220,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
       const [field] = item.path;
 
       if (typeof field === "string") {
-        const key = field as keyof BuildingCreateInput;
+        const key = field as BuildingFieldName;
         errors[key] ??= item.message;
       } else {
         formIssues.push(item.message);
@@ -216,6 +235,11 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
 
   return (
     <div className="space-y-6">
+      <BlockingFormToast
+        message={blockingToastMessage}
+        onDismiss={dismissBlockingToast}
+      />
+
       {organizationsState.error ? (
         <div className="flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
           <AlertTriangle aria-hidden="true" className="size-4" />
@@ -648,6 +672,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
           onClick={() => {
             setFormError(null);
             setFieldErrors({});
+            setBlockingToastMessage(null);
 
             const input: BuildingCreateInput = {
               address,
@@ -669,12 +694,16 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
             };
 
             if (!userId) {
-              setFormError("Utilisateur requis.");
+              const message = "Utilisateur requis.";
+              setFormError(message);
+              setBlockingToastMessage(message);
               return;
             }
 
             if (!isEdit && organizationId.length === 0) {
-              setFormError("Espace personnel requis.");
+              const message = "Espace personnel requis.";
+              setFormError(message);
+              setBlockingToastMessage(message);
               return;
             }
 
@@ -694,6 +723,13 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
                   );
                   setFieldErrors(fieldErrors);
                   setFormError(formError ?? "Champs invalides.");
+                  setBlockingToastMessage(
+                    getBlockingFormMessage<BuildingFieldName>({
+                      fallback: formError ?? "Champs invalides.",
+                      fieldErrors,
+                      fieldMessages: buildingBlockingFieldMessages,
+                    }),
+                  );
                   return null;
                 }
 

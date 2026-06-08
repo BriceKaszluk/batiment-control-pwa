@@ -9,10 +9,11 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { z } from "zod";
 
+import { BlockingFormToast } from "@/components/feedback/blocking-form-toast";
 import { Button } from "@/components/ui/button";
 import { useLocalAgents } from "@/features/agents/hooks/use-local-agents";
 import {
@@ -22,6 +23,7 @@ import {
 } from "@/features/agents/services/agent-labels";
 import { useUserOrganizations } from "@/features/buildings/hooks/use-user-organizations";
 import { agentStatuses } from "@/lib/domain/options";
+import { getBlockingFormMessage } from "@/lib/forms/validation-feedback";
 import {
   capitalizeWords,
   capitalizeWordStarts,
@@ -33,13 +35,18 @@ type AgentsManagementSectionProps = {
   userId: string | null;
 };
 
-type FieldErrors = Partial<Record<keyof AgentCreateInput, string>>;
+type AgentFieldName = Extract<keyof AgentCreateInput, string>;
+type FieldErrors = Partial<Record<AgentFieldName, string>>;
 type AgentStatus = (typeof agentStatuses)[number];
 
 const statusToneClasses: Record<AgentStatusTone, string> = {
   available: "border-emerald-200 bg-emerald-50 text-emerald-900",
   away: "border-amber-200 bg-amber-50 text-amber-900",
   neutral: "border-slate-200 bg-slate-50 text-slate-700",
+};
+
+const agentBlockingFieldMessages: Partial<Record<AgentFieldName, string>> = {
+  name: "Le nom de l'agent est requis.",
 };
 
 export function AgentsManagementSection({
@@ -56,16 +63,26 @@ export function AgentsManagementSection({
   const [status, setStatus] = useState<AgentStatus>("present");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [blockingToastMessage, setBlockingToastMessage] = useState<
+    string | null
+  >(null);
   const [isSaving, setIsSaving] = useState(false);
 
   const canCreate = Boolean(userId && organization && !isSaving);
 
+  const dismissBlockingToast = useCallback(() => {
+    setBlockingToastMessage(null);
+  }, []);
+
   function handleCreateAgent() {
     setFieldErrors({});
     setFormError(null);
+    setBlockingToastMessage(null);
 
     if (!userId || !organization) {
-      setFormError("Espace personnel requis.");
+      const message = "Espace personnel requis.";
+      setFormError(message);
+      setBlockingToastMessage(message);
       return;
     }
 
@@ -87,6 +104,13 @@ export function AgentsManagementSection({
           const errors = collectFieldErrors(parsed.error);
           setFieldErrors(errors.fieldErrors);
           setFormError(errors.formError ?? "Champs invalides.");
+          setBlockingToastMessage(
+            getBlockingFormMessage<AgentFieldName>({
+              fallback: errors.formError ?? "Champs invalides.",
+              fieldErrors: errors.fieldErrors,
+              fieldMessages: agentBlockingFieldMessages,
+            }),
+          );
           return null;
         }
 
@@ -103,6 +127,7 @@ export function AgentsManagementSection({
 
         setName("");
         setStatus("present");
+        setBlockingToastMessage(null);
       })
       .catch((error: unknown) => {
         setFormError(
@@ -116,6 +141,11 @@ export function AgentsManagementSection({
 
   return (
     <div className="space-y-6">
+      <BlockingFormToast
+        message={blockingToastMessage}
+        onDismiss={dismissBlockingToast}
+      />
+
       {organizationsState.error ? (
         <FeedbackBox tone="error">Espace personnel local indisponible</FeedbackBox>
       ) : null}
@@ -240,6 +270,9 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
   const [status, setStatus] = useState<AgentStatus>(agent.status);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [blockingToastMessage, setBlockingToastMessage] = useState<
+    string | null
+  >(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -253,9 +286,14 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
   );
   const statusTone = getAgentStatusTone(status);
 
+  const dismissBlockingToast = useCallback(() => {
+    setBlockingToastMessage(null);
+  }, []);
+
   function handleSaveAgent() {
     setFieldErrors({});
     setFormError(null);
+    setBlockingToastMessage(null);
 
     const input: AgentCreateInput = {
       name,
@@ -275,6 +313,13 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
           const errors = collectFieldErrors(parsed.error);
           setFieldErrors(errors.fieldErrors);
           setFormError(errors.formError ?? "Champs invalides.");
+          setBlockingToastMessage(
+            getBlockingFormMessage<AgentFieldName>({
+              fallback: errors.formError ?? "Champs invalides.",
+              fieldErrors: errors.fieldErrors,
+              fieldMessages: agentBlockingFieldMessages,
+            }),
+          );
           return null;
         }
 
@@ -286,6 +331,7 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
       })
       .then((result) => {
         if (result !== null) {
+          setBlockingToastMessage(null);
           setIsEditing(false);
         }
       })
@@ -301,6 +347,11 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
 
   return (
     <article className="surface-card space-y-4 p-4">
+      <BlockingFormToast
+        message={blockingToastMessage}
+        onDismiss={dismissBlockingToast}
+      />
+
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <div className="flex items-center gap-2">
@@ -320,6 +371,7 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
           <Button
             className="h-10 shrink-0 px-3"
             onClick={() => {
+              setBlockingToastMessage(null);
               setIsEditing(true);
             }}
             type="button"
@@ -397,6 +449,7 @@ function AgentEditor({ agent, userId }: Readonly<AgentEditorProps>) {
                 setStatus(agent.status);
                 setFieldErrors({});
                 setFormError(null);
+                setBlockingToastMessage(null);
                 setIsEditing(false);
               }}
               type="button"
@@ -445,7 +498,7 @@ function collectFieldErrors(
     const [field] = item.path;
 
     if (typeof field === "string") {
-      const key = field as keyof AgentCreateInput;
+      const key = field as AgentFieldName;
       errors[key] ??= item.message;
     } else {
       formIssues.push(item.message);

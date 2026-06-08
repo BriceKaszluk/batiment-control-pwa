@@ -40,7 +40,7 @@ export function SyncStatusBar({
   const canSync =
     syncEnabled && Boolean(userId) && !isOffline && !outboxSync.isSyncing;
   const NetworkIcon = isOffline ? WifiOff : Wifi;
-  const syncError = error ?? outboxSync.error;
+  const syncError = isOffline ? null : error ?? outboxSync.error;
 
   return (
     <div
@@ -105,11 +105,6 @@ export function SyncStatusBar({
         />
         Synchroniser
       </button>
-      {syncError ? (
-        <p className="basis-full text-xs font-medium text-red-700">
-          {syncError}
-        </p>
-      ) : null}
     </div>
   );
 }

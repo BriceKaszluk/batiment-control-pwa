@@ -1,19 +1,45 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useCallback, useState } from "react";
+import type { InvalidEvent } from "react";
 import { useFormStatus } from "react-dom";
 
+import { BlockingFormToast } from "@/components/feedback/blocking-form-toast";
 import { signUpWithPassword } from "@/features/auth/actions";
 import { initialSignUpFormState } from "@/features/auth/signup-form-state";
+import { getNativeInputValidationMessage } from "@/lib/forms/validation-feedback";
 
 export function SignUpForm() {
   const [state, formAction] = useActionState(
     signUpWithPassword,
     initialSignUpFormState,
   );
+  const [blockingToastMessage, setBlockingToastMessage] = useState<
+    string | null
+  >(null);
+
+  const dismissBlockingToast = useCallback(() => {
+    setBlockingToastMessage(null);
+  }, []);
+
+  function handleInvalidInput(
+    label: string,
+    event: InvalidEvent<HTMLInputElement>,
+  ) {
+    event.preventDefault();
+    setBlockingToastMessage(
+      getNativeInputValidationMessage(label, event.currentTarget),
+    );
+    event.currentTarget.focus();
+  }
 
   return (
     <form action={formAction} className="space-y-4">
+      <BlockingFormToast
+        message={blockingToastMessage}
+        onDismiss={dismissBlockingToast}
+      />
+
       <div className="space-y-2">
         <label className="text-sm font-medium" htmlFor="email">
           Email
@@ -23,6 +49,10 @@ export function SignUpForm() {
           className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
           id="email"
           name="email"
+          onInput={dismissBlockingToast}
+          onInvalid={(event) => {
+            handleInvalidInput("Email", event);
+          }}
           required
           type="email"
         />
@@ -38,6 +68,10 @@ export function SignUpForm() {
           id="password"
           minLength={8}
           name="password"
+          onInput={dismissBlockingToast}
+          onInvalid={(event) => {
+            handleInvalidInput("Mot de passe", event);
+          }}
           required
           type="password"
         />
@@ -56,6 +90,10 @@ export function SignUpForm() {
           id="passwordConfirmation"
           minLength={8}
           name="passwordConfirmation"
+          onInput={dismissBlockingToast}
+          onInvalid={(event) => {
+            handleInvalidInput("Confirmation du mot de passe", event);
+          }}
           required
           type="password"
         />
