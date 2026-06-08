@@ -1,4 +1,4 @@
-import { Building2, ClipboardCheck, Clock3 } from "lucide-react";
+import { Building2, ClipboardCheck } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,6 @@ type ControlListItemProps = {
 
 export function ControlListItem({ summary }: Readonly<ControlListItemProps>) {
   const { building, control } = summary;
-  const timestamp = control.completedAt ?? control.startedAt;
 
   return (
     <article className="surface-card p-4">
@@ -35,11 +34,6 @@ export function ControlListItem({ summary }: Readonly<ControlListItemProps>) {
           {getControlStatusLabel(control.status)}
         </span>
       </div>
-      <p className="mt-4 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-        <Clock3 aria-hidden="true" className="size-3.5" />
-        {control.completedAt ? "Termine ce jour" : "Demarre localement"} -{" "}
-        {formatTime(timestamp)}
-      </p>
       <Button asChild className="mt-4 h-11 w-full">
         <Link href={`/controles/${control.id}`}>
           <ClipboardCheck aria-hidden="true" className="size-4" />
@@ -48,11 +42,4 @@ export function ControlListItem({ summary }: Readonly<ControlListItemProps>) {
       </Button>
     </article>
   );
-}
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
 }

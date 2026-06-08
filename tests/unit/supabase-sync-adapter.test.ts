@@ -10,6 +10,7 @@ import type {
   Agent,
   Building,
   BuildingSector,
+  ControlAreaResult,
   ChecklistResult,
   Control,
   ControlPhoto,
@@ -195,6 +196,36 @@ describe("Supabase sync adapter", () => {
         status: "compliant",
       },
       table: "control_checklist_results",
+    });
+  });
+
+  it("maps control area result payloads to the remote table name", () => {
+    const areaResult: ControlAreaResult = {
+      area: "hall",
+      controlId: "77777777-7777-4777-8777-777777777777",
+      createdAt: now,
+      id: "99999999-9999-4999-8999-999999999999",
+      organizationId,
+      status: "unsatisfying",
+      updatedAt: now,
+    };
+
+    expect(
+      toSupabaseMutation(
+        createOperation({
+          aggregateId: areaResult.id,
+          entity: "controlAreaResults",
+          payload: areaResult,
+        }),
+      ),
+    ).toMatchObject({
+      row: {
+        area: "hall",
+        control_id: areaResult.controlId,
+        organization_id: organizationId,
+        status: "unsatisfying",
+      },
+      table: "control_area_results",
     });
   });
 

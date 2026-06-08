@@ -5,6 +5,7 @@ export const synchronizableEntities = [
   "buildings",
   "buildingSectors",
   "checklistItems",
+  "controlAreaResults",
   "checklistResults",
   "controlPhotos",
   "controls",

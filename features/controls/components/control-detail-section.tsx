@@ -4,6 +4,7 @@ import { AlertTriangle, Building2, Loader2 } from "lucide-react";
 
 import { ChecklistResultEditor } from "@/features/controls/components/checklist-result-editor";
 import { CompleteControlButton } from "@/features/controls/components/complete-control-button";
+import { ControlAreaResultsSection } from "@/features/controls/components/control-area-results-section";
 import { ControlCommentEditor } from "@/features/controls/components/control-comment-editor";
 import { ControlPhotosSection } from "@/features/controls/components/control-photos-section";
 import { ControlQualityRatingEditor } from "@/features/controls/components/control-quality-rating-editor";
@@ -72,6 +73,12 @@ export function ControlDetailSection({
       <ControlQualityRatingEditor control={detail.control} userId={userId} />
 
       <ControlCommentEditor control={detail.control} userId={userId} />
+
+      <ControlAreaResultsSection
+        controlId={detail.control.id}
+        entries={detail.areaResults}
+        userId={userId}
+      />
 
       <ControlPhotosSection
         controlId={detail.control.id}

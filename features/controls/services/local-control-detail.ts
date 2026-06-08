@@ -5,12 +5,14 @@ import { db } from "@/lib/db/dexie";
 import { saveLocalMutation } from "@/lib/sync/local-mutation";
 import {
   checklistResultSchema,
+  controlAreaResultSchema,
   controlQualityRatingSchema,
   controlSchema,
 } from "@/lib/validation/schemas";
 import type {
   Building,
   ChecklistItem,
+  ControlAreaResult,
   ChecklistResult,
   Control,
   ControlPhoto,
@@ -27,7 +29,13 @@ export type LocalChecklistEntry = {
   result: ChecklistResult | undefined;
 };
 
+export type LocalControlAreaEntry = {
+  area: Building["areasToCheck"][number];
+  result: ControlAreaResult | undefined;
+};
+
 export type LocalControlDetail = {
+  areaResults: LocalControlAreaEntry[];
   building: Building | undefined;
   checklist: LocalChecklistEntry[];
   control: Control;
@@ -37,6 +45,17 @@ export type LocalControlDetail = {
 export type GetLocalControlDetailOptions = {
   controlId: string;
   database?: BatimentControlDatabase;
+  userId: string | null;
+};
+
+export type SaveControlAreaResultOptions = {
+  area: Building["areasToCheck"][number];
+  clientMutationId?: string;
+  controlId: string;
+  createId?: () => string;
+  database?: BatimentControlDatabase;
+  now?: () => string;
+  status: ControlAreaResult["status"];
   userId: string | null;
 };
 
@@ -96,25 +115,34 @@ export async function getLocalControlDetail({
     return null;
   }
 
-  const [building, checklistItems, checklistResults, photos] = await Promise.all([
-    database.buildings.get(control.buildingId),
-    database.checklistItems
-      .where("organizationId")
-      .equals(control.organizationId)
-      .filter((item) => item.deletedAt === null && item.isActive)
-      .toArray(),
-    database.checklistResults.where("controlId").equals(control.id).toArray(),
-    database.controlPhotos
-      .where("controlId")
-      .equals(control.id)
-      .filter((photo) => photo.deletedAt === null)
-      .toArray(),
-  ]);
+  const [building, areaResults, checklistItems, checklistResults, photos] =
+    await Promise.all([
+      database.buildings.get(control.buildingId),
+      database.controlAreaResults.where("controlId").equals(control.id).toArray(),
+      database.checklistItems
+        .where("organizationId")
+        .equals(control.organizationId)
+        .filter((item) => item.deletedAt === null && item.isActive)
+        .toArray(),
+      database.checklistResults.where("controlId").equals(control.id).toArray(),
+      database.controlPhotos
+        .where("controlId")
+        .equals(control.id)
+        .filter((photo) => photo.deletedAt === null)
+        .toArray(),
+    ]);
   const resultsByItemId = new Map(
     checklistResults.map((result) => [result.checklistItemId, result]),
   );
+  const resultsByArea = new Map(
+    areaResults.map((result) => [result.area, result]),
+  );
 
   return {
+    areaResults: (building?.areasToCheck ?? []).map((area) => ({
+      area,
+      result: resultsByArea.get(area),
+    })),
     building,
     checklist: checklistItems
       .sort(compareChecklistItems)
@@ -125,6 +153,71 @@ export async function getLocalControlDetail({
     control,
     photos: photos.sort(comparePhotos),
   };
+}
+
+export async function saveControlAreaResult({
+  area,
+  clientMutationId,
+  controlId,
+  createId = () => crypto.randomUUID(),
+  database = db,
+  now = () => new Date().toISOString(),
+  status,
+  userId,
+}: SaveControlAreaResultOptions): Promise<LocalMutationResult<ControlAreaResult>> {
+  if (!userId) {
+    throw new Error("Utilisateur requis pour enregistrer l'element controle.");
+  }
+
+  const control = await database.controls.get(controlId);
+
+  if (!control || control.deletedAt !== null) {
+    throw new Error("Controle local introuvable.");
+  }
+
+  const [building, membership] = await Promise.all([
+    database.buildings.get(control.buildingId),
+    database.organizationMembers.get([control.organizationId, userId]),
+  ]);
+
+  if (!membership) {
+    throw new Error("Organisation locale non autorisee.");
+  }
+
+  if (
+    !building ||
+    building.deletedAt !== null ||
+    building.organizationId !== control.organizationId ||
+    !building.areasToCheck.includes(area)
+  ) {
+    throw new Error("Element a controler introuvable.");
+  }
+
+  const existingResult = await database.controlAreaResults
+    .where("[controlId+area]")
+    .equals([control.id, area])
+    .first();
+  const timestamp = now();
+  const areaResult: ControlAreaResult = {
+    area,
+    controlId: control.id,
+    createdAt: existingResult?.createdAt ?? timestamp,
+    id: existingResult?.id ?? createId(),
+    organizationId: control.organizationId,
+    status,
+    updatedAt: timestamp,
+  };
+
+  return saveLocalMutation({
+    clientMutationId,
+    createId,
+    database,
+    entity: "controlAreaResults",
+    now,
+    record: areaResult,
+    schema: controlAreaResultSchema,
+    table: database.controlAreaResults,
+  });
 }
 
 export async function saveControlComment({

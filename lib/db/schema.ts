@@ -7,6 +7,7 @@ import type {
   Building,
   BuildingSector,
   ChecklistItem,
+  ControlAreaResult,
   ChecklistResult,
   Control,
   ControlPhoto,
@@ -87,11 +88,18 @@ const versionNineStores = {
     "&id, organizationId, buildingId, controlledBy, status, archivedAt, startedAt, deletedAt, updatedAt, [organizationId+buildingId], [organizationId+status], [organizationId+deletedAt], [organizationId+archivedAt]",
 };
 
+const versionTenStores = {
+  ...versionNineStores,
+  controlAreaResults:
+    "&id, organizationId, controlId, area, status, updatedAt, [organizationId+controlId], [controlId+area]",
+};
+
 export class BatimentControlDatabase extends Dexie {
   agents!: Table<Agent, string>;
   buildings!: Table<Building, string>;
   buildingSectors!: Table<BuildingSector, string>;
   checklistItems!: Table<ChecklistItem, string>;
+  controlAreaResults!: Table<ControlAreaResult, string>;
   checklistResults!: Table<ChecklistResult, string>;
   controls!: Table<Control, string>;
   controlPhotos!: Table<ControlPhoto, string>;
@@ -224,5 +232,6 @@ export class BatimentControlDatabase extends Dexie {
                 : null;
           }),
       );
+    this.version(10).stores(versionTenStores);
   }
 }

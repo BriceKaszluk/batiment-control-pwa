@@ -19,6 +19,7 @@ export type Database = {
         | "unknown";
       building_priority_level: "low" | "normal" | "high" | "critical";
       checklist_result_status: "compliant" | "non_compliant" | "not_applicable";
+      control_area_result_status: "satisfying" | "unsatisfying";
       control_quality_rating:
         | "satisfying"
         | "acceptable"
@@ -222,6 +223,60 @@ export type Database = {
           label?: string;
           organization_id?: string;
           position?: number;
+          updated_at?: string;
+        };
+      };
+      control_area_results: {
+        Insert: {
+          area:
+            | "outdoor"
+            | "hall"
+            | "elevator"
+            | "stairs"
+            | "floor_landings"
+            | "basement_access"
+            | "common_areas"
+            | "garage";
+          control_id: string;
+          created_at?: string;
+          id: string;
+          organization_id: string;
+          status: Database["public"]["Enums"]["control_area_result_status"];
+          updated_at?: string;
+        };
+        Relationships: [];
+        Row: {
+          area:
+            | "outdoor"
+            | "hall"
+            | "elevator"
+            | "stairs"
+            | "floor_landings"
+            | "basement_access"
+            | "common_areas"
+            | "garage";
+          control_id: string;
+          created_at: string;
+          id: string;
+          organization_id: string;
+          status: Database["public"]["Enums"]["control_area_result_status"];
+          updated_at: string;
+        };
+        Update: {
+          area?:
+            | "outdoor"
+            | "hall"
+            | "elevator"
+            | "stairs"
+            | "floor_landings"
+            | "basement_access"
+            | "common_areas"
+            | "garage";
+          control_id?: string;
+          created_at?: string;
+          id?: string;
+          organization_id?: string;
+          status?: Database["public"]["Enums"]["control_area_result_status"];
           updated_at?: string;
         };
       };

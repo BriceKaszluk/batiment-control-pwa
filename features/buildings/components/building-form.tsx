@@ -10,6 +10,7 @@ import { BlockingFormToast } from "@/components/feedback/blocking-form-toast";
 import { Button } from "@/components/ui/button";
 import { useLocalAgents } from "@/features/agents/hooks/use-local-agents";
 import { getAgentStatusLabel } from "@/features/agents/services/agent-labels";
+import { getBuildingAreaLabel } from "@/features/buildings/services/building-area-labels";
 import { useLocalSectors } from "@/features/buildings/hooks/use-local-sectors";
 import { useUserOrganizations } from "@/features/buildings/hooks/use-user-organizations";
 import {
@@ -66,17 +67,6 @@ const taskLabels: Record<(typeof serviceTasks)[number], string> = {
   touchpoint_disinfection: "Desinfection points de contact",
   trash_room: "Local poubelle",
   windows: "Vitres",
-};
-
-const areaLabels: Record<(typeof buildingAreas)[number], string> = {
-  elevator: "Ascenseur",
-  basement_access: "Acces circulation caves",
-  common_areas: "Locaux communs",
-  floor_landings: "Palier d'etages",
-  garage: "Garage",
-  hall: "Hall",
-  outdoor: "Abords",
-  stairs: "Montee escalier",
 };
 
 const buildingBlockingFieldMessages: Partial<
@@ -658,7 +648,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
                   }}
                   type="checkbox"
                 />
-                <span>{areaLabels[area]}</span>
+                <span>{getBuildingAreaLabel(area)}</span>
               </label>
             );
           })}

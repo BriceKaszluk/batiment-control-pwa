@@ -11,6 +11,7 @@ import {
   buildingSchema,
   buildingSectorSchema,
   checklistItemSchema,
+  controlAreaResultSchema,
   checklistResultSchema,
   controlSchema,
   controlSummarySchema,
@@ -23,6 +24,7 @@ import type {
   Building,
   BuildingSector,
   ChecklistItem,
+  ControlAreaResult,
   ChecklistResult,
   Control,
   ControlSummary,
@@ -36,6 +38,7 @@ export type RemoteSnapshot = {
   buildings: Building[];
   buildingSectors: BuildingSector[];
   checklistItems: ChecklistItem[];
+  controlAreaResults: ControlAreaResult[];
   checklistResults: ChecklistResult[];
   controls: Control[];
   controlSummaries: ControlSummary[];
@@ -55,6 +58,7 @@ export function createEmptyRemoteSnapshot(): RemoteSnapshot {
     buildings: [],
     buildingSectors: [],
     checklistItems: [],
+    controlAreaResults: [],
     checklistResults: [],
     controls: [],
     controlSummaries: [],
@@ -77,6 +81,7 @@ export async function saveRemoteSnapshot(
       database.buildings,
       database.buildingSectors,
       database.checklistItems,
+      database.controlAreaResults,
       database.controls,
       database.controlSummaries,
       database.checklistResults,
@@ -111,6 +116,11 @@ export async function saveRemoteSnapshot(
         database.checklistItems,
         checklistItemSchema,
         snapshot.checklistItems,
+      );
+      await putVersionedRecords(
+        database.controlAreaResults,
+        controlAreaResultSchema,
+        snapshot.controlAreaResults,
       );
       await putVersionedRecords(
         database.controls,

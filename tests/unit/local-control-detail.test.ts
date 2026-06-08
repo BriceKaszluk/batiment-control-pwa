@@ -7,6 +7,7 @@ import {
   getControlQualityRatingLabel,
   getChecklistResultStatusLabel,
   getLocalControlDetail,
+  saveControlAreaResult,
   saveControlComment,
   saveControlQualityRating,
   saveChecklistResult,
@@ -14,6 +15,7 @@ import {
 import type {
   Building,
   ChecklistItem,
+  ControlAreaResult,
   ChecklistResult,
   Control,
   OrganizationMember,
@@ -27,6 +29,7 @@ const buildingId = "33333333-3333-4333-8333-333333333333";
 const controlId = "44444444-4444-4444-8444-444444444444";
 const checklistItemId = "55555555-5555-4555-8555-555555555555";
 const checklistResultId = "66666666-6666-4666-8666-666666666666";
+const controlAreaResultId = "99999999-9999-4999-8999-999999999999";
 const mutationId = "77777777-7777-4777-8777-777777777777";
 const operationId = "88888888-8888-4888-8888-888888888888";
 
@@ -61,7 +64,7 @@ const organizationMember: OrganizationMember = {
 const building: Building = {
   address: "12 rue du Controle",
   agentStatus: "unknown",
-  areasToCheck: [],
+  areasToCheck: ["hall"],
   assignedAgentId: null,
   assignedAgentName: null,
   createdAt: now,
@@ -126,6 +129,21 @@ function createChecklistResult(
   };
 }
 
+function createControlAreaResult(
+  overrides: Partial<ControlAreaResult> = {},
+): ControlAreaResult {
+  return {
+    area: "hall",
+    controlId,
+    createdAt: now,
+    id: controlAreaResultId,
+    organizationId,
+    status: "satisfying",
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
 describe("local control detail", () => {
   let database: BatimentControlDatabase;
 
@@ -144,11 +162,19 @@ describe("local control detail", () => {
 
   it("loads a local control with checklist items and existing results", async () => {
     const checklistResult = createChecklistResult();
+    const controlAreaResult = createControlAreaResult();
     await database.checklistResults.put(checklistResult);
+    await database.controlAreaResults.put(controlAreaResult);
 
     await expect(
       getLocalControlDetail({ controlId, database, userId }),
     ).resolves.toEqual({
+      areaResults: [
+        {
+          area: "hall",
+          result: controlAreaResult,
+        },
+      ],
       building,
       checklist: [
         {
@@ -158,6 +184,58 @@ describe("local control detail", () => {
       ],
       control,
       photos: [],
+    });
+  });
+
+  it("creates a control area result locally with an outbox operation", async () => {
+    const result = await saveControlAreaResult({
+      area: "hall",
+      controlId,
+      createId: createIdFactory([controlAreaResultId, mutationId, operationId]),
+      database,
+      now: () => now,
+      status: "unsatisfying",
+      userId,
+    });
+
+    await expect(database.controlAreaResults.get(controlAreaResultId)).resolves.toEqual(
+      result.record,
+    );
+    await expect(database.outbox.get(operationId)).resolves.toMatchObject({
+      aggregateId: controlAreaResultId,
+      entity: "controlAreaResults",
+      organizationId,
+      status: "pending",
+    });
+    expect(result.record).toMatchObject({
+      area: "hall",
+      status: "unsatisfying",
+    });
+  });
+
+  it("updates an existing control area result while preserving its id", async () => {
+    await database.controlAreaResults.put(createControlAreaResult());
+
+    const result = await saveControlAreaResult({
+      area: "hall",
+      controlId,
+      createId: createIdFactory([mutationId, operationId]),
+      database,
+      now: () => later,
+      status: "unsatisfying",
+      userId,
+    });
+
+    expect(result.record).toMatchObject({
+      createdAt: now,
+      id: controlAreaResultId,
+      status: "unsatisfying",
+      updatedAt: later,
+    });
+    await expect(database.controlAreaResults.count()).resolves.toBe(1);
+    await expect(database.outbox.get(operationId)).resolves.toMatchObject({
+      aggregateId: controlAreaResultId,
+      entity: "controlAreaResults",
     });
   });
 

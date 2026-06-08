@@ -5,6 +5,7 @@ import {
   buildingAreas,
   buildingPriorityLevels,
   controlQualityRatings,
+  controlAreaResultStatuses,
   checklistResultStatuses,
   controlStatuses,
   correctiveActionStatuses,
@@ -22,6 +23,7 @@ export {
   buildingAreas,
   buildingPriorityLevels,
   controlQualityRatings,
+  controlAreaResultStatuses,
   checklistResultStatuses,
   controlStatuses,
   correctiveActionStatuses,
@@ -38,6 +40,7 @@ export const memberRoleSchema = z.enum(memberRoles);
 export const workspaceTypeSchema = z.enum(workspaceTypes);
 export const controlStatusSchema = z.enum(controlStatuses);
 export const controlQualityRatingSchema = z.enum(controlQualityRatings);
+export const controlAreaResultStatusSchema = z.enum(controlAreaResultStatuses);
 export const checklistResultStatusSchema = z.enum(checklistResultStatuses);
 export const correctiveActionStatusSchema = z.enum(correctiveActionStatuses);
 export const photoUploadStatusSchema = z.enum(photoUploadStatuses);
@@ -246,6 +249,18 @@ export const checklistResultSchema = z
     id: uuidSchema,
     organizationId: uuidSchema,
     status: checklistResultStatusSchema,
+    updatedAt: isoDateTimeSchema,
+  })
+  .strict();
+
+export const controlAreaResultSchema = z
+  .object({
+    area: buildingAreaSchema,
+    controlId: uuidSchema,
+    createdAt: isoDateTimeSchema,
+    id: uuidSchema,
+    organizationId: uuidSchema,
+    status: controlAreaResultStatusSchema,
     updatedAt: isoDateTimeSchema,
   })
   .strict();

@@ -98,7 +98,7 @@ export function ControlPhotosSection({
           variant="outline"
         >
           <Camera aria-hidden="true" className="size-5" />
-          Choisir une photo
+          Ajouter une photo
         </Button>
 
         {selectedFile ? (

@@ -10,6 +10,7 @@ import {
   buildingSchema,
   buildingSectorSchema,
   checklistItemSchema,
+  controlAreaResultSchema,
   checklistResultSchema,
   controlSchema,
   controlSummarySchema,
@@ -30,6 +31,10 @@ export function createRepositories(database: BatimentControlDatabase = db) {
     checklistItems: createOrganizationScopedRepository(
       database.checklistItems,
       checklistItemSchema,
+    ),
+    controlAreaResults: createOrganizationScopedRepository(
+      database.controlAreaResults,
+      controlAreaResultSchema,
     ),
     checklistResults: createOrganizationScopedRepository(
       database.checklistResults,

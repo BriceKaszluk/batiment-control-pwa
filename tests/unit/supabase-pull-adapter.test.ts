@@ -4,6 +4,7 @@ import {
   toAgent,
   toBuilding,
   toBuildingSector,
+  toControlAreaResult,
   toChecklistResult,
   toControl,
   toOrganization,
@@ -159,6 +160,28 @@ describe("Supabase pull adapter", () => {
       controlId: row.control_id,
       organizationId,
       status: "non_compliant",
+    });
+  });
+
+  it("maps area results from the remote table", () => {
+    const row: PublicTables["control_area_results"]["Row"] = {
+      area: "hall",
+      control_id: "55555555-5555-4555-8555-555555555555",
+      created_at: now,
+      id: "77777777-7777-4777-8777-777777777777",
+      organization_id: organizationId,
+      status: "unsatisfying",
+      updated_at: now,
+    };
+
+    expect(toControlAreaResult(row)).toEqual({
+      area: "hall",
+      controlId: row.control_id,
+      createdAt: now,
+      id: row.id,
+      organizationId,
+      status: "unsatisfying",
+      updatedAt: now,
     });
   });
 

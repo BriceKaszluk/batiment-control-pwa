@@ -9,6 +9,7 @@ import {
 import type {
   Agent,
   Building,
+  ControlAreaResult,
   ChecklistResult,
   Control,
   Organization,
@@ -176,6 +177,7 @@ async function getAgentsById({
 }
 
 type BuildingScoreContext = {
+  latestAreaResults: ControlAreaResult[];
   latestChecklistResults: ChecklistResult[];
   latestCompletedControl: Control | null;
   recentCompletedControls: Control[];
@@ -193,6 +195,7 @@ async function getScoreContextsByBuildingId({
     buildingIds.map((buildingId) => [
       buildingId,
       {
+        latestAreaResults: [],
         latestChecklistResults: [],
         latestCompletedControl: null,
         recentCompletedControls: [],
@@ -243,11 +246,21 @@ async function getScoreContextsByBuildingId({
           .anyOf(latestControlIds)
           .toArray()
       : [];
+  const areaResults =
+    latestControlIds.length > 0
+      ? await database.controlAreaResults
+          .where("controlId")
+          .anyOf(latestControlIds)
+          .toArray()
+      : [];
 
   for (const control of latestCompletedControls) {
     const context = contextByBuildingId.get(control.buildingId);
 
     if (context) {
+      context.latestAreaResults = areaResults.filter(
+        (result) => result.controlId === control.id,
+      );
       context.latestChecklistResults = checklistResults.filter(
         (result) => result.controlId === control.id,
       );

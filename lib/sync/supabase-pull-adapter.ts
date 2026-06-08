@@ -16,6 +16,7 @@ import type {
   Building,
   BuildingSector,
   ChecklistItem,
+  ControlAreaResult,
   ChecklistResult,
   Control,
   ControlSummary,
@@ -65,6 +66,7 @@ export function createSupabaseRemotePullAdapter(
         buildingRows,
         buildingSectorRows,
         checklistItemRows,
+        controlAreaResultRows,
         controlRows,
         controlSummaryRows,
         checklistResultRows,
@@ -75,6 +77,7 @@ export function createSupabaseRemotePullAdapter(
         fetchBuildings(client, organizationIds),
         fetchBuildingSectors(client, organizationIds),
         fetchChecklistItems(client, organizationIds),
+        fetchControlAreaResults(client, organizationIds),
         fetchControls(client, organizationIds),
         fetchControlSummaries(client, organizationIds),
         fetchChecklistResults(client, organizationIds),
@@ -86,6 +89,7 @@ export function createSupabaseRemotePullAdapter(
         buildings: buildingRows.map(toBuilding),
         buildingSectors: buildingSectorRows.map(toBuildingSector),
         checklistItems: checklistItemRows.map(toChecklistItem),
+        controlAreaResults: controlAreaResultRows.map(toControlAreaResult),
         checklistResults: checklistResultRows.map(toChecklistResult),
         controls: controlRows.map(toControl),
         controlSummaries: controlSummaryRows.map(toControlSummary),
@@ -252,6 +256,20 @@ export function toChecklistResult(
   };
 }
 
+export function toControlAreaResult(
+  row: PublicTables["control_area_results"]["Row"],
+): ControlAreaResult {
+  return {
+    area: buildingAreaSchema.parse(row.area),
+    controlId: row.control_id,
+    createdAt: row.created_at,
+    id: row.id,
+    organizationId: row.organization_id,
+    status: row.status,
+    updatedAt: row.updated_at,
+  };
+}
+
 export function toCorrectiveAction(
   row: PublicTables["corrective_actions"]["Row"],
 ): CorrectiveAction {
@@ -371,6 +389,19 @@ async function fetchChecklistResults(
 ) {
   const { data, error } = await client
     .from("control_checklist_results")
+    .select("*")
+    .in("organization_id", organizationIds);
+  throwIfSupabaseError(error);
+
+  return data ?? [];
+}
+
+async function fetchControlAreaResults(
+  client: BrowserSupabaseClient,
+  organizationIds: string[],
+) {
+  const { data, error } = await client
+    .from("control_area_results")
     .select("*")
     .in("organization_id", organizationIds);
   throwIfSupabaseError(error);

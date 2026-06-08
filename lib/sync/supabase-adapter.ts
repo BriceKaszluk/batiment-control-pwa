@@ -11,6 +11,7 @@ import {
   buildingSchema,
   buildingSectorSchema,
   checklistItemSchema,
+  controlAreaResultSchema,
   checklistResultSchema,
   controlSchema,
   controlSummarySchema,
@@ -21,6 +22,7 @@ import type {
   Building,
   BuildingSector,
   ChecklistItem,
+  ControlAreaResult,
   ChecklistResult,
   Control,
   ControlSummary,
@@ -36,6 +38,7 @@ type SupabaseMutation =
   | { row: PublicTables["buildings"]["Insert"]; table: "buildings" }
   | { row: PublicTables["building_sectors"]["Insert"]; table: "building_sectors" }
   | { row: PublicTables["checklist_items"]["Insert"]; table: "checklist_items" }
+  | { row: PublicTables["control_area_results"]["Insert"]; table: "control_area_results" }
   | { row: PublicTables["control_checklist_results"]["Insert"]; table: "control_checklist_results" }
   | { row: ControlPhotoDeletePayload; table: "control_photos" }
   | { row: PublicTables["controls"]["Insert"]; table: "controls" }
@@ -80,6 +83,13 @@ export function toSupabaseMutation(operation: OutboxOperation): SupabaseMutation
       return {
         row: toChecklistItemInsert(checklistItemSchema.parse(operation.payload)),
         table: "checklist_items",
+      };
+    case "controlAreaResults":
+      return {
+        row: toControlAreaResultInsert(
+          controlAreaResultSchema.parse(operation.payload),
+        ),
+        table: "control_area_results",
       };
     case "checklistResults":
       return {
@@ -153,6 +163,13 @@ async function pushOutboxOperation(
     case "control_checklist_results": {
       const { error } = await client
         .from("control_checklist_results")
+        .upsert(mutation.row, { onConflict: "id" });
+      throwIfSupabaseError(error);
+      return;
+    }
+    case "control_area_results": {
+      const { error } = await client
+        .from("control_area_results")
         .upsert(mutation.row, { onConflict: "id" });
       throwIfSupabaseError(error);
       return;
@@ -345,6 +362,20 @@ function toChecklistResultInsert(
     organization_id: checklistResult.organizationId,
     status: checklistResult.status,
     updated_at: checklistResult.updatedAt,
+  };
+}
+
+function toControlAreaResultInsert(
+  areaResult: ControlAreaResult,
+): PublicTables["control_area_results"]["Insert"] {
+  return {
+    area: areaResult.area,
+    control_id: areaResult.controlId,
+    created_at: areaResult.createdAt,
+    id: areaResult.id,
+    organization_id: areaResult.organizationId,
+    status: areaResult.status,
+    updated_at: areaResult.updatedAt,
   };
 }
 

@@ -12,6 +12,10 @@ export const checklistResultStatuses = [
   "non_compliant",
   "not_applicable",
 ] as const;
+export const controlAreaResultStatuses = [
+  "satisfying",
+  "unsatisfying",
+] as const;
 export const correctiveActionStatuses = [
   "open",
   "in_progress",

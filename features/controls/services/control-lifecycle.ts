@@ -9,6 +9,7 @@ import type {
   Building,
   ChecklistResult,
   Control,
+  ControlAreaResult,
   ControlPhoto,
   ControlSummary,
   OrganizationMember,
@@ -48,6 +49,7 @@ export type ApplyControlLifecyclePolicyResult = ControlLifecyclePreview & {
 };
 
 type LifecycleCandidate = {
+  areaResults: ControlAreaResult[];
   building: Building | undefined;
   checklistResults: ChecklistResult[];
   control: Control;
@@ -269,8 +271,9 @@ async function getLifecycleCandidates({
 
   return Promise.all(
     controls.map(async (control) => {
-      const [building, checklistResults, photos] =
+      const [areaResults, building, checklistResults, photos] =
         await Promise.all([
+          database.controlAreaResults.where("controlId").equals(control.id).toArray(),
           database.buildings.get(control.buildingId),
           database.checklistResults.where("controlId").equals(control.id).toArray(),
           database.controlPhotos
@@ -281,10 +284,12 @@ async function getLifecycleCandidates({
         ]);
 
       return {
+        areaResults,
         building,
         checklistResults,
         control,
         hasBlockingSync: await hasBlockingSync(database, {
+          areaResults,
           checklistResults,
           control,
           photos,
@@ -310,6 +315,7 @@ async function getAuthorizedOrganizationIds(
 async function hasBlockingSync(
   database: BatimentControlDatabase,
   candidate: {
+    areaResults: ControlAreaResult[];
     checklistResults: ChecklistResult[];
     control: Control;
     photos: ControlPhoto[];
@@ -317,6 +323,7 @@ async function hasBlockingSync(
 ) {
   const relatedAggregateIds = new Set([
     candidate.control.id,
+    ...candidate.areaResults.map((result) => result.id),
     ...candidate.checklistResults.map((result) => result.id),
     ...candidate.photos.map((photo) => photo.id),
   ]);
@@ -347,6 +354,9 @@ function buildControlSummary(
   existingSummary: ControlSummary | undefined,
 ): ControlSummary {
   const activePhotos = candidate.photos.filter((photo) => photo.deletedAt === null);
+  const unsatisfyingAreaResultCount = candidate.areaResults.filter(
+    (result) => result.status === "unsatisfying",
+  ).length;
   const nonCompliantResultCount = candidate.checklistResults.filter(
     (result) => result.status === "non_compliant",
   ).length;
@@ -359,7 +369,8 @@ function buildControlSummary(
       candidate.building?.name?.trim() ||
       existingSummary?.buildingName ||
       "Batiment non disponible",
-    checklistResultCount: candidate.checklistResults.length,
+    checklistResultCount:
+      candidate.checklistResults.length + candidate.areaResults.length,
     completedAt: candidate.control.completedAt,
     controlId: candidate.control.id,
     controlledBy: candidate.control.controlledBy,
@@ -368,7 +379,7 @@ function buildControlSummary(
     deletedAt: null,
     generalComment: candidate.control.generalComment,
     id: candidate.control.id,
-    nonCompliantResultCount,
+    nonCompliantResultCount: nonCompliantResultCount + unsatisfyingAreaResultCount,
     organizationId: candidate.control.organizationId,
     photoCount: Math.max(existingSummary?.photoCount ?? 0, activePhotos.length),
     qualityRating: candidate.control.qualityRating,

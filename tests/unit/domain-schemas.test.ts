@@ -4,6 +4,7 @@ import {
   agentSchema,
   buildingSchema,
   buildingSectorSchema,
+  controlAreaResultSchema,
   controlPhotoSchema,
   controlSchema,
   correctiveActionSchema,
@@ -290,6 +291,20 @@ describe("domain schemas", () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it("accepts a valid control area result", () => {
+    const result = controlAreaResultSchema.safeParse({
+      area: "hall",
+      controlId,
+      createdAt: now,
+      id: "99999999-9999-4999-8999-999999999999",
+      organizationId,
+      status: "unsatisfying",
+      updatedAt: now,
+    });
+
+    expect(result.success).toBe(true);
   });
 
   it("defaults a draft control without a quality rating", () => {

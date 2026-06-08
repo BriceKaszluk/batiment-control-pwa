@@ -34,6 +34,10 @@ const controlLifecycleMigration = readFileSync(
   "supabase/migrations/20260606130000_add_control_lifecycle.sql",
   "utf8",
 );
+const controlAreaResultsMigration = readFileSync(
+  "supabase/migrations/20260608190000_add_control_area_results.sql",
+  "utf8",
+);
 
 const publicTables = [
   "organizations",
@@ -229,5 +233,37 @@ describe("control lifecycle Supabase migration", () => {
       "on storage.objects\nfor delete",
     );
     expect(controlLifecycleMigration).toContain("bucket_id = 'control-photos'");
+  });
+});
+
+describe("control area results Supabase migration", () => {
+  it("creates the control area results table", () => {
+    expect(controlAreaResultsMigration).toContain(
+      "create type public.control_area_result_status as enum",
+    );
+    expect(controlAreaResultsMigration).toContain(
+      "create table public.control_area_results",
+    );
+    expect(controlAreaResultsMigration).toContain("'satisfying'");
+    expect(controlAreaResultsMigration).toContain("'unsatisfying'");
+    expect(controlAreaResultsMigration).toContain(
+      "constraint control_area_results_control_same_org",
+    );
+    expect(controlAreaResultsMigration).not.toContain("service_role");
+  });
+
+  it("enables forced RLS and authenticated policies for area results", () => {
+    expect(controlAreaResultsMigration).toContain(
+      "alter table public.control_area_results enable row level security;",
+    );
+    expect(controlAreaResultsMigration).toContain(
+      "alter table public.control_area_results force row level security;",
+    );
+    expect(controlAreaResultsMigration).toMatch(
+      /create policy "[^"]+"\s+on public\.control_area_results\s+[\s\S]+?to authenticated/i,
+    );
+    expect(controlAreaResultsMigration).toContain(
+      "public.is_org_member(organization_id)",
+    );
   });
 });

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { calculateBuildingPriorityScore } from "@/features/buildings/services/building-priority-score";
-import type { Building, ChecklistResult, Control } from "@/types/domain";
+import type {
+  Building,
+  ChecklistResult,
+  Control,
+  ControlAreaResult,
+} from "@/types/domain";
 
 const now = "2026-06-06T00:00:00.000Z";
 const organizationId = "11111111-1111-4111-8111-111111111111";
@@ -129,6 +134,48 @@ describe("building priority score", () => {
     expect(score.factors).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          key: "quality",
+          points: 25,
+        }),
+      ]),
+    );
+  });
+
+  it("uses controlled building elements in the quality score", () => {
+    const areaResults: ControlAreaResult[] = [
+      {
+        area: "hall",
+        controlId,
+        createdAt: now,
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        organizationId,
+        status: "unsatisfying",
+        updatedAt: now,
+      },
+      {
+        area: "stairs",
+        controlId,
+        createdAt: now,
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        organizationId,
+        status: "satisfying",
+        updatedAt: now,
+      },
+    ];
+    const score = calculateBuildingPriorityScore({
+      building,
+      latestAreaResults: areaResults,
+      latestCompletedControl: createControl({
+        completedAt: "2026-06-01T00:00:00.000Z",
+        qualityRating: null,
+      }),
+      now,
+    });
+
+    expect(score.factors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          description: "1/2 element insatisfaisant",
           key: "quality",
           points: 25,
         }),

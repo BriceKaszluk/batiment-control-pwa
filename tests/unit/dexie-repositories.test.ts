@@ -101,6 +101,7 @@ describe("Dexie repositories", () => {
       "buildings",
       "checklistItems",
       "checklistResults",
+      "controlAreaResults",
       "controlPhotos",
       "controlSummaries",
       "controls",

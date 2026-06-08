@@ -8,6 +8,7 @@ import type {
   buildingSectorSchema,
   buildingSchema,
   checklistItemSchema,
+  controlAreaResultSchema,
   checklistResultSchema,
   controlPhotoSchema,
   controlCreateSchema,
@@ -31,6 +32,7 @@ export type OrganizationMember = z.infer<typeof organizationMemberSchema>;
 export type Building = z.infer<typeof buildingSchema>;
 export type BuildingCreateInput = z.infer<typeof buildingCreateSchema>;
 export type ChecklistItem = z.infer<typeof checklistItemSchema>;
+export type ControlAreaResult = z.infer<typeof controlAreaResultSchema>;
 export type Control = z.infer<typeof controlSchema>;
 export type ControlCreateInput = z.infer<typeof controlCreateSchema>;
 export type ControlSummary = z.infer<typeof controlSummarySchema>;
