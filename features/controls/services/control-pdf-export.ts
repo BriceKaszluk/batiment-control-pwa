@@ -11,7 +11,6 @@ import {
 
 import { getBuildingAreaLabel } from "@/features/buildings/services/building-area-labels";
 import {
-  getChecklistResultStatusLabel,
   getControlQualityRatingLabel,
   getControlStatusLabel,
 } from "@/features/controls/services/control-labels";
@@ -56,7 +55,6 @@ const ink = rgb(0.08, 0.1, 0.1);
 const muted = rgb(0.39, 0.45, 0.43);
 const success = rgb(0.06, 0.45, 0.24);
 const danger = rgb(0.68, 0.12, 0.12);
-const warning = rgb(0.68, 0.4, 0.08);
 const pageTop = pageHeight - margin;
 const pageBottom = margin;
 const contentWidth = pageWidth - margin * 2;
@@ -76,7 +74,6 @@ export async function createControlPdfBlob(
   drawReportHeader(layout, detail);
   drawSummary(layout, detail);
   drawAreaResults(layout, detail);
-  drawChecklist(layout, detail);
   drawObservation(layout, detail);
   await drawPhotos(layout, detail.photos);
   drawFooter(pdfDoc, fonts);
@@ -226,41 +223,6 @@ function drawAreaResults(layout: PdfLayout, detail: LocalControlDetail) {
       status === "satisfying" ? success : status === "unsatisfying" ? danger : muted;
 
     drawStatusRow(layout, getBuildingAreaLabel(entry.area), statusLabel, statusColor);
-  }
-}
-
-function drawChecklist(layout: PdfLayout, detail: LocalControlDetail) {
-  drawSectionTitle(layout, "Points de controle");
-
-  if (detail.checklist.length === 0) {
-    drawEmptyState(layout, "Aucune checklist locale.");
-    return;
-  }
-
-  for (const entry of detail.checklist) {
-    const status = entry.result?.status ?? null;
-    const statusLabel = status
-      ? getChecklistResultStatusLabel(status)
-      : "Non renseigne";
-    const statusColor =
-      status === "compliant"
-        ? success
-        : status === "non_compliant"
-          ? danger
-          : status === "not_applicable"
-            ? warning
-            : muted;
-    const comment = entry.result?.comment?.trim();
-    const description = entry.item.description?.trim();
-    const note = [description, comment ? `Note: ${comment}` : null]
-      .filter((value): value is string => Boolean(value))
-      .join(" - ");
-    const estimatedHeight = note ? 58 : 38;
-
-    ensureSpace(layout, estimatedHeight);
-    drawStatusRow(layout, entry.item.label, statusLabel, statusColor, {
-      note,
-    });
   }
 }
 

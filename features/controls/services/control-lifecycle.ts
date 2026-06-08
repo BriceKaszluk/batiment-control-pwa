@@ -7,7 +7,6 @@ import { parseOutboxPayload } from "@/lib/validation/sync-schemas";
 import { controlSchema, controlSummarySchema } from "@/lib/validation/schemas";
 import type {
   Building,
-  ChecklistResult,
   Control,
   ControlAreaResult,
   ControlPhoto,
@@ -51,7 +50,6 @@ export type ApplyControlLifecyclePolicyResult = ControlLifecyclePreview & {
 type LifecycleCandidate = {
   areaResults: ControlAreaResult[];
   building: Building | undefined;
-  checklistResults: ChecklistResult[];
   control: Control;
   hasBlockingSync: boolean;
   photos: ControlPhoto[];
@@ -271,26 +269,22 @@ async function getLifecycleCandidates({
 
   return Promise.all(
     controls.map(async (control) => {
-      const [areaResults, building, checklistResults, photos] =
-        await Promise.all([
-          database.controlAreaResults.where("controlId").equals(control.id).toArray(),
-          database.buildings.get(control.buildingId),
-          database.checklistResults.where("controlId").equals(control.id).toArray(),
-          database.controlPhotos
-            .where("controlId")
-            .equals(control.id)
-            .filter((photo) => photo.deletedAt === null)
-            .toArray(),
-        ]);
+      const [areaResults, building, photos] = await Promise.all([
+        database.controlAreaResults.where("controlId").equals(control.id).toArray(),
+        database.buildings.get(control.buildingId),
+        database.controlPhotos
+          .where("controlId")
+          .equals(control.id)
+          .filter((photo) => photo.deletedAt === null)
+          .toArray(),
+      ]);
 
       return {
         areaResults,
         building,
-        checklistResults,
         control,
         hasBlockingSync: await hasBlockingSync(database, {
           areaResults,
-          checklistResults,
           control,
           photos,
         }),
@@ -316,7 +310,6 @@ async function hasBlockingSync(
   database: BatimentControlDatabase,
   candidate: {
     areaResults: ControlAreaResult[];
-    checklistResults: ChecklistResult[];
     control: Control;
     photos: ControlPhoto[];
   },
@@ -324,7 +317,6 @@ async function hasBlockingSync(
   const relatedAggregateIds = new Set([
     candidate.control.id,
     ...candidate.areaResults.map((result) => result.id),
-    ...candidate.checklistResults.map((result) => result.id),
     ...candidate.photos.map((photo) => photo.id),
   ]);
 
@@ -357,9 +349,6 @@ function buildControlSummary(
   const unsatisfyingAreaResultCount = candidate.areaResults.filter(
     (result) => result.status === "unsatisfying",
   ).length;
-  const nonCompliantResultCount = candidate.checklistResults.filter(
-    (result) => result.status === "non_compliant",
-  ).length;
 
   return {
     buildingAddress:
@@ -369,8 +358,7 @@ function buildControlSummary(
       candidate.building?.name?.trim() ||
       existingSummary?.buildingName ||
       "Batiment non disponible",
-    checklistResultCount:
-      candidate.checklistResults.length + candidate.areaResults.length,
+    checklistResultCount: candidate.areaResults.length,
     completedAt: candidate.control.completedAt,
     controlId: candidate.control.id,
     controlledBy: candidate.control.controlledBy,
@@ -379,7 +367,7 @@ function buildControlSummary(
     deletedAt: null,
     generalComment: candidate.control.generalComment,
     id: candidate.control.id,
-    nonCompliantResultCount: nonCompliantResultCount + unsatisfyingAreaResultCount,
+    nonCompliantResultCount: unsatisfyingAreaResultCount,
     organizationId: candidate.control.organizationId,
     photoCount: Math.max(existingSummary?.photoCount ?? 0, activePhotos.length),
     qualityRating: candidate.control.qualityRating,

@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { calculateBuildingPriorityScore } from "@/features/buildings/services/building-priority-score";
 import type {
   Building,
-  ChecklistResult,
   Control,
   ControlAreaResult,
 } from "@/types/domain";
@@ -96,49 +95,6 @@ describe("building priority score", () => {
       "quality",
       "buildingPriority",
     ]);
-  });
-
-  it("falls back to checklist non-conformity when no global rating exists", () => {
-    const checklistResults: ChecklistResult[] = [
-      {
-        checklistItemId: "77777777-7777-4777-8777-777777777777",
-        comment: null,
-        controlId,
-        createdAt: now,
-        id: "88888888-8888-4888-8888-888888888888",
-        organizationId,
-        status: "non_compliant",
-        updatedAt: now,
-      },
-      {
-        checklistItemId: "99999999-9999-4999-8999-999999999999",
-        comment: null,
-        controlId,
-        createdAt: now,
-        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        organizationId,
-        status: "compliant",
-        updatedAt: now,
-      },
-    ];
-    const score = calculateBuildingPriorityScore({
-      building,
-      latestChecklistResults: checklistResults,
-      latestCompletedControl: createControl({
-        completedAt: "2026-06-01T00:00:00.000Z",
-        qualityRating: null,
-      }),
-      now,
-    });
-
-    expect(score.factors).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          key: "quality",
-          points: 25,
-        }),
-      ]),
-    );
   });
 
   it("uses controlled building elements in the quality score", () => {

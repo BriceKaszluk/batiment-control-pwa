@@ -34,7 +34,6 @@ const detail: LocalControlDetail = {
     serviceDays: [],
     updatedAt: now,
   },
-  checklist: [],
   control: {
     archivedAt: null,
     buildingId,

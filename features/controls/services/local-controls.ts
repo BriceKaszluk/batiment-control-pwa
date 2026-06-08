@@ -21,7 +21,7 @@ export type LocalControlSummary = {
 };
 
 export type LocalControlHistorySummary = LocalControlSummary & {
-  checklistResultCount: number;
+  controlledAreaResultCount: number;
   photoCount: number;
 };
 
@@ -329,7 +329,7 @@ export async function listControlHistoryForUser({
   return Promise.all(
     limitedControls.map(async ({ building, control }) => ({
       building,
-      checklistResultCount: await database.checklistResults
+      controlledAreaResultCount: await database.controlAreaResults
         .where("controlId")
         .equals(control.id)
         .count(),

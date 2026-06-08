@@ -2,7 +2,6 @@
 
 import { AlertTriangle, Building2, Loader2 } from "lucide-react";
 
-import { ChecklistResultEditor } from "@/features/controls/components/checklist-result-editor";
 import { CompleteControlButton } from "@/features/controls/components/complete-control-button";
 import { ControlAreaResultsSection } from "@/features/controls/components/control-area-results-section";
 import { ControlCommentEditor } from "@/features/controls/components/control-comment-editor";
@@ -88,23 +87,6 @@ export function ControlDetailSection({
         photos={detail.photos}
         userId={userId}
       />
-
-      {detail.checklist.length === 0 ? (
-        <div className="flex min-h-28 items-center justify-center rounded-md border bg-muted px-4 text-center text-sm text-muted-foreground">
-          Aucune checklist locale
-        </div>
-      ) : (
-        <div className="motion-list space-y-3">
-          {detail.checklist.map((entry) => (
-            <ChecklistResultEditor
-              controlId={detail.control.id}
-              entry={entry}
-              key={entry.item.id}
-              userId={userId}
-            />
-          ))}
-        </div>
-      )}
 
       <CompleteControlButton control={detail.control} userId={userId} />
     </section>

@@ -338,13 +338,13 @@ describe("local controls", () => {
     ).resolves.toEqual([
       {
         building,
-        checklistResultCount: 0,
+        controlledAreaResultCount: 0,
         control: completedYesterdayControl,
         photoCount: 0,
       },
       {
         building,
-        checklistResultCount: 0,
+        controlledAreaResultCount: 0,
         control: olderCompletedControl,
         photoCount: 0,
       },
@@ -385,7 +385,7 @@ describe("local controls", () => {
     ).resolves.toEqual([
       {
         building,
-        checklistResultCount: 0,
+        controlledAreaResultCount: 0,
         control: matchingControl,
         photoCount: 0,
       },
@@ -400,7 +400,7 @@ describe("local controls", () => {
     ).resolves.toEqual([
       {
         building,
-        checklistResultCount: 0,
+        controlledAreaResultCount: 0,
         control: matchingControl,
         photoCount: 0,
       },

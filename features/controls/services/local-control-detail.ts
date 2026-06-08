@@ -4,7 +4,6 @@ import type { BatimentControlDatabase } from "@/lib/db/schema";
 import { db } from "@/lib/db/dexie";
 import { saveLocalMutation } from "@/lib/sync/local-mutation";
 import {
-  checklistResultSchema,
   controlAreaResultSchema,
   controlQualityRatingSchema,
   controlSchema,
@@ -12,9 +11,7 @@ import {
 import type {
   Agent,
   Building,
-  ChecklistItem,
   ControlAreaResult,
-  ChecklistResult,
   Control,
   ControlPhoto,
 } from "@/types/domain";
@@ -22,13 +19,7 @@ import type { LocalMutationResult } from "@/types/sync";
 
 export {
   getControlQualityRatingLabel,
-  getChecklistResultStatusLabel,
 } from "@/features/controls/services/control-labels";
-
-export type LocalChecklistEntry = {
-  item: ChecklistItem;
-  result: ChecklistResult | undefined;
-};
 
 export type LocalControlAreaEntry = {
   area: Building["areasToCheck"][number];
@@ -39,7 +30,6 @@ export type LocalControlDetail = {
   agent: Agent | null;
   areaResults: LocalControlAreaEntry[];
   building: Building | undefined;
-  checklist: LocalChecklistEntry[];
   control: Control;
   photos: ControlPhoto[];
 };
@@ -58,18 +48,6 @@ export type SaveControlAreaResultOptions = {
   database?: BatimentControlDatabase;
   now?: () => string;
   status: ControlAreaResult["status"];
-  userId: string | null;
-};
-
-export type SaveChecklistResultOptions = {
-  checklistItemId: string;
-  clientMutationId?: string;
-  comment?: string | null;
-  controlId: string;
-  createId?: () => string;
-  database?: BatimentControlDatabase;
-  now?: () => string;
-  status: ChecklistResult["status"];
   userId: string | null;
 };
 
@@ -117,25 +95,15 @@ export async function getLocalControlDetail({
     return null;
   }
 
-  const [building, areaResults, checklistItems, checklistResults, photos] =
-    await Promise.all([
-      database.buildings.get(control.buildingId),
-      database.controlAreaResults.where("controlId").equals(control.id).toArray(),
-      database.checklistItems
-        .where("organizationId")
-        .equals(control.organizationId)
-        .filter((item) => item.deletedAt === null && item.isActive)
-        .toArray(),
-      database.checklistResults.where("controlId").equals(control.id).toArray(),
-      database.controlPhotos
-        .where("controlId")
-        .equals(control.id)
-        .filter((photo) => photo.deletedAt === null)
-        .toArray(),
-    ]);
-  const resultsByItemId = new Map(
-    checklistResults.map((result) => [result.checklistItemId, result]),
-  );
+  const [building, areaResults, photos] = await Promise.all([
+    database.buildings.get(control.buildingId),
+    database.controlAreaResults.where("controlId").equals(control.id).toArray(),
+    database.controlPhotos
+      .where("controlId")
+      .equals(control.id)
+      .filter((photo) => photo.deletedAt === null)
+      .toArray(),
+  ]);
   const resultsByArea = new Map(
     areaResults.map((result) => [result.area, result]),
   );
@@ -150,12 +118,6 @@ export async function getLocalControlDetail({
       result: resultsByArea.get(area),
     })),
     building,
-    checklist: checklistItems
-      .sort(compareChecklistItems)
-      .map((item) => ({
-        item,
-        result: resultsByItemId.get(item.id),
-      })),
     control,
     photos: photos.sort(comparePhotos),
   };
@@ -316,89 +278,6 @@ export async function saveControlQualityRating({
     schema: controlSchema,
     table: database.controls,
   });
-}
-
-export async function saveChecklistResult({
-  checklistItemId,
-  clientMutationId,
-  comment = null,
-  controlId,
-  createId = () => crypto.randomUUID(),
-  database = db,
-  now = () => new Date().toISOString(),
-  status,
-  userId,
-}: SaveChecklistResultOptions): Promise<LocalMutationResult<ChecklistResult>> {
-  if (!userId) {
-    throw new Error("Utilisateur requis pour enregistrer la checklist.");
-  }
-
-  const [control, checklistItem] = await Promise.all([
-    database.controls.get(controlId),
-    database.checklistItems.get(checklistItemId),
-  ]);
-
-  if (!control || control.deletedAt !== null) {
-    throw new Error("Controle local introuvable.");
-  }
-
-  if (
-    !checklistItem ||
-    checklistItem.deletedAt !== null ||
-    !checklistItem.isActive ||
-    checklistItem.organizationId !== control.organizationId
-  ) {
-    throw new Error("Point de checklist local introuvable.");
-  }
-
-  const membership = await database.organizationMembers.get([
-    control.organizationId,
-    userId,
-  ]);
-
-  if (!membership) {
-    throw new Error("Organisation locale non autorisee.");
-  }
-
-  const existingResult = await database.checklistResults
-    .where("[controlId+checklistItemId]")
-    .equals([control.id, checklistItem.id])
-    .first();
-  const timestamp = now();
-  const checklistResult: ChecklistResult = {
-    checklistItemId: checklistItem.id,
-    comment: normalizeComment(comment),
-    controlId: control.id,
-    createdAt: existingResult?.createdAt ?? timestamp,
-    id: existingResult?.id ?? createId(),
-    organizationId: control.organizationId,
-    status,
-    updatedAt: timestamp,
-  };
-
-  return saveLocalMutation({
-    clientMutationId,
-    createId,
-    database,
-    entity: "checklistResults",
-    now,
-    record: checklistResult,
-    schema: checklistResultSchema,
-    table: database.checklistResults,
-  });
-}
-
-function compareChecklistItems(
-  firstItem: ChecklistItem,
-  secondItem: ChecklistItem,
-) {
-  const positionDifference = firstItem.position - secondItem.position;
-
-  if (positionDifference !== 0) {
-    return positionDifference;
-  }
-
-  return firstItem.label.localeCompare(secondItem.label, "fr");
 }
 
 function comparePhotos(firstPhoto: ControlPhoto, secondPhoto: ControlPhoto) {

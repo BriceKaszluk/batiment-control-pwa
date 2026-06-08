@@ -1,4 +1,4 @@
-import type { ChecklistResult, Control, PhotoUpload } from "@/types/domain";
+import type { Control, PhotoUpload } from "@/types/domain";
 
 export const maxLocalPhotoSizeBytes = 8 * 1024 * 1024;
 
@@ -54,20 +54,6 @@ export function getControlQualityRatingTone(
   }
 
   return "danger";
-}
-
-export function getChecklistResultStatusLabel(
-  status: ChecklistResult["status"],
-) {
-  if (status === "compliant") {
-    return "Conforme";
-  }
-
-  if (status === "non_compliant") {
-    return "Non conforme";
-  }
-
-  return "Non applicable";
 }
 
 export function getPhotoUploadStatusLabel(status: PhotoUpload["status"]) {

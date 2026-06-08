@@ -20,7 +20,7 @@ export default async function ControlDetailPage({
     <div className="space-y-6">
       <PageHeader
         eyebrow="Controle"
-        title="Checklist terrain"
+        title="Controle terrain"
         description="Reponses sauvegardees localement avant synchronisation."
       />
       <ControlDetailSection controlId={controlId} userId={authState.userId} />

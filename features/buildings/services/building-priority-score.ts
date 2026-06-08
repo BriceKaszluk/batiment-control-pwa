@@ -2,7 +2,6 @@
 
 import type {
   Building,
-  ChecklistResult,
   Control,
   ControlAreaResult,
 } from "@/types/domain";
@@ -37,7 +36,6 @@ export type CalculateBuildingPriorityScoreInput = {
   building: Building;
   latestAreaResults?: ControlAreaResult[];
   latestCompletedControl?: Control | null;
-  latestChecklistResults?: ChecklistResult[];
   now?: string;
 };
 
@@ -48,7 +46,6 @@ const maxBuildingPriorityPoints = 15;
 export function calculateBuildingPriorityScore({
   building,
   latestAreaResults = [],
-  latestChecklistResults = [],
   latestCompletedControl = null,
   now = new Date().toISOString(),
 }: CalculateBuildingPriorityScoreInput): BuildingPriorityScore {
@@ -56,7 +53,6 @@ export function calculateBuildingPriorityScore({
     getControlDelayFactor({ building, latestCompletedControl, now }),
     getQualityFactor({
       latestAreaResults,
-      latestChecklistResults,
       latestCompletedControl,
     }),
     getBuildingPriorityFactor(building.priorityLevel),
@@ -154,11 +150,9 @@ function getControlDelayFactor({
 
 function getQualityFactor({
   latestAreaResults,
-  latestChecklistResults,
   latestCompletedControl,
 }: {
   latestAreaResults: ControlAreaResult[];
-  latestChecklistResults: ChecklistResult[];
   latestCompletedControl: Control | null;
 }): BuildingPriorityScoreFactor {
   if (!latestCompletedControl) {
@@ -172,12 +166,10 @@ function getQualityFactor({
   }
 
   const areaQuality = getAreaQualityScore(latestAreaResults);
-  const checklistQuality = getChecklistQualityScore(latestChecklistResults);
 
   if (latestCompletedControl.qualityRating) {
     const ratingPoints = getQualityRatingPoints(latestCompletedControl.qualityRating);
-    const detailsQuality =
-      areaQuality.points >= checklistQuality.points ? areaQuality : checklistQuality;
+    const detailsQuality = areaQuality;
     const points = Math.max(ratingPoints, detailsQuality.points);
 
     return {
@@ -192,15 +184,12 @@ function getQualityFactor({
     };
   }
 
-  const detailsQuality =
-    areaQuality.points >= checklistQuality.points ? areaQuality : checklistQuality;
-
   return {
-    description: detailsQuality.description,
+    description: areaQuality.description,
     key: "quality",
     label: "Qualite",
     maxPoints: maxQualityPoints,
-    points: detailsQuality.points,
+    points: areaQuality.points,
   };
 }
 
@@ -225,33 +214,6 @@ function getAreaQualityScore(areaResults: ControlAreaResult[]) {
       checkedResults.length > 0
         ? `${unsatisfyingCount}/${checkedResults.length} element insatisfaisant`
         : "Aucun element controle renseigne",
-    points,
-  };
-}
-
-function getChecklistQualityScore(latestChecklistResults: ChecklistResult[]) {
-  const checkedResults = latestChecklistResults.filter(
-    (result) => result.status !== "not_applicable",
-  );
-  const nonCompliantCount = checkedResults.filter(
-    (result) => result.status === "non_compliant",
-  ).length;
-  const nonCompliantRatio =
-    checkedResults.length > 0 ? nonCompliantCount / checkedResults.length : 0;
-  const points =
-    nonCompliantRatio >= 0.5
-      ? 25
-      : nonCompliantRatio >= 0.2
-        ? 15
-        : nonCompliantCount > 0
-          ? 7
-          : 0;
-
-  return {
-    description:
-      checkedResults.length > 0
-        ? `${nonCompliantCount}/${checkedResults.length} point non conforme`
-        : "Aucun etat global renseigne",
     points,
   };
 }

@@ -5,18 +5,14 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { BatimentControlDatabase } from "@/lib/db/schema";
 import {
   getControlQualityRatingLabel,
-  getChecklistResultStatusLabel,
   getLocalControlDetail,
   saveControlAreaResult,
   saveControlComment,
   saveControlQualityRating,
-  saveChecklistResult,
 } from "@/features/controls/services/local-control-detail";
 import type {
   Building,
-  ChecklistItem,
   ControlAreaResult,
-  ChecklistResult,
   Control,
   OrganizationMember,
 } from "@/types/domain";
@@ -27,8 +23,6 @@ const organizationId = "11111111-1111-4111-8111-111111111111";
 const userId = "22222222-2222-4222-8222-222222222222";
 const buildingId = "33333333-3333-4333-8333-333333333333";
 const controlId = "44444444-4444-4444-8444-444444444444";
-const checklistItemId = "55555555-5555-4555-8555-555555555555";
-const checklistResultId = "66666666-6666-4666-8666-666666666666";
 const controlAreaResultId = "99999999-9999-4999-8999-999999999999";
 const mutationId = "77777777-7777-4777-8777-777777777777";
 const operationId = "88888888-8888-4888-8888-888888888888";
@@ -99,36 +93,6 @@ const control: Control = {
   updatedAt: now,
 };
 
-const checklistItem: ChecklistItem = {
-  createdAt: now,
-  createdBy: userId,
-  deletedAt: null,
-  description: "Verifier le hall",
-  id: checklistItemId,
-  isActive: true,
-  isRequired: true,
-  label: "Hall propre",
-  organizationId,
-  position: 1,
-  updatedAt: now,
-};
-
-function createChecklistResult(
-  overrides: Partial<ChecklistResult> = {},
-): ChecklistResult {
-  return {
-    checklistItemId,
-    comment: null,
-    controlId,
-    createdAt: now,
-    id: checklistResultId,
-    organizationId,
-    status: "compliant",
-    updatedAt: now,
-    ...overrides,
-  };
-}
-
 function createControlAreaResult(
   overrides: Partial<ControlAreaResult> = {},
 ): ControlAreaResult {
@@ -152,7 +116,6 @@ describe("local control detail", () => {
     await database.organizationMembers.put(organizationMember);
     await database.buildings.put(building);
     await database.controls.put(control);
-    await database.checklistItems.put(checklistItem);
   });
 
   afterEach(async () => {
@@ -160,10 +123,8 @@ describe("local control detail", () => {
     await database.delete();
   });
 
-  it("loads a local control with checklist items and existing results", async () => {
-    const checklistResult = createChecklistResult();
+  it("loads a local control with controlled building elements", async () => {
     const controlAreaResult = createControlAreaResult();
-    await database.checklistResults.put(checklistResult);
     await database.controlAreaResults.put(controlAreaResult);
 
     await expect(
@@ -177,12 +138,6 @@ describe("local control detail", () => {
         },
       ],
       building,
-      checklist: [
-        {
-          item: checklistItem,
-          result: checklistResult,
-        },
-      ],
       control,
       photos: [],
     });
@@ -240,72 +195,19 @@ describe("local control detail", () => {
     });
   });
 
-  it("creates a checklist result locally with an outbox operation", async () => {
-    const result = await saveChecklistResult({
-      checklistItemId,
-      comment: "  Sol OK  ",
-      controlId,
-      createId: createIdFactory([checklistResultId, mutationId, operationId]),
-      database,
-      now: () => now,
-      status: "compliant",
-      userId,
-    });
-
-    await expect(database.checklistResults.get(checklistResultId)).resolves.toEqual(
-      result.record,
-    );
-    await expect(database.outbox.get(operationId)).resolves.toMatchObject({
-      aggregateId: checklistResultId,
-      entity: "checklistResults",
-      organizationId,
-      status: "pending",
-    });
-    expect(result.record).toMatchObject({
-      comment: "Sol OK",
-      status: "compliant",
-    });
-  });
-
-  it("updates an existing checklist result while preserving its id", async () => {
-    await database.checklistResults.put(createChecklistResult());
-
-    const result = await saveChecklistResult({
-      checklistItemId,
-      controlId,
-      createId: createIdFactory([mutationId, operationId]),
-      database,
-      now: () => later,
-      status: "non_compliant",
-      userId,
-    });
-
-    expect(result.record).toMatchObject({
-      createdAt: now,
-      id: checklistResultId,
-      status: "non_compliant",
-      updatedAt: later,
-    });
-    await expect(database.checklistResults.count()).resolves.toBe(1);
-    await expect(database.outbox.get(operationId)).resolves.toMatchObject({
-      aggregateId: checklistResultId,
-      entity: "checklistResults",
-    });
-  });
-
   it("requires an authorized organization membership before saving", async () => {
     await database.organizationMembers.clear();
 
     await expect(
-      saveChecklistResult({
-        checklistItemId,
+      saveControlAreaResult({
+        area: "hall",
         controlId,
         database,
-        status: "compliant",
+        status: "satisfying",
         userId,
       }),
     ).rejects.toThrow("Organisation locale non autorisee");
-    await expect(database.checklistResults.count()).resolves.toBe(0);
+    await expect(database.controlAreaResults.count()).resolves.toBe(0);
     await expect(database.outbox.count()).resolves.toBe(0);
   });
 
@@ -358,15 +260,10 @@ describe("local control detail", () => {
     });
   });
 
-  it("formats checklist result labels", () => {
+  it("formats control quality labels", () => {
     expect(getControlQualityRatingLabel("satisfying")).toBe("Satisfaisant");
     expect(getControlQualityRatingLabel("acceptable")).toBe("Acceptable");
     expect(getControlQualityRatingLabel("to_improve")).toBe("A ameliorer");
     expect(getControlQualityRatingLabel("unsatisfying")).toBe("Insatisfaisant");
-    expect(getChecklistResultStatusLabel("compliant")).toBe("Conforme");
-    expect(getChecklistResultStatusLabel("non_compliant")).toBe("Non conforme");
-    expect(getChecklistResultStatusLabel("not_applicable")).toBe(
-      "Non applicable",
-    );
   });
 });

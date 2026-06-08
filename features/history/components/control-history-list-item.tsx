@@ -11,7 +11,7 @@ type ControlHistoryListItemProps = {
 export function ControlHistoryListItem({
   summary,
 }: Readonly<ControlHistoryListItemProps>) {
-  const { building, checklistResultCount, control, photoCount } = summary;
+  const { building, controlledAreaResultCount, control, photoCount } = summary;
 
   return (
     <article
@@ -43,7 +43,11 @@ export function ControlHistoryListItem({
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-center text-xs font-medium text-muted-foreground">
-        <Metric icon={CheckSquare} label="Points" value={checklistResultCount} />
+        <Metric
+          icon={CheckSquare}
+          label="Elements"
+          value={controlledAreaResultCount}
+        />
         <Metric icon={Camera} label="Photos" value={photoCount} />
       </div>
 
