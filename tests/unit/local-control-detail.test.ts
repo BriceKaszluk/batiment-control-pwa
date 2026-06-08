@@ -169,6 +169,7 @@ describe("local control detail", () => {
     await expect(
       getLocalControlDetail({ controlId, database, userId }),
     ).resolves.toEqual({
+      agent: null,
       areaResults: [
         {
           area: "hall",

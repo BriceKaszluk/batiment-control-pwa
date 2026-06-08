@@ -21,6 +21,7 @@
     "dexie": "^4.4.3",
     "lucide-react": "^0.468.0",
     "next": "^15.3.3",
+    "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.6.0",

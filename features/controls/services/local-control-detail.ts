@@ -10,6 +10,7 @@ import {
   controlSchema,
 } from "@/lib/validation/schemas";
 import type {
+  Agent,
   Building,
   ChecklistItem,
   ControlAreaResult,
@@ -35,6 +36,7 @@ export type LocalControlAreaEntry = {
 };
 
 export type LocalControlDetail = {
+  agent: Agent | null;
   areaResults: LocalControlAreaEntry[];
   building: Building | undefined;
   checklist: LocalChecklistEntry[];
@@ -137,8 +139,12 @@ export async function getLocalControlDetail({
   const resultsByArea = new Map(
     areaResults.map((result) => [result.area, result]),
   );
+  const agent = building?.assignedAgentId
+    ? await database.agents.get(building.assignedAgentId)
+    : undefined;
 
   return {
+    agent: agent && agent.deletedAt === null ? agent : null,
     areaResults: (building?.areasToCheck ?? []).map((area) => ({
       area,
       result: resultsByArea.get(area),

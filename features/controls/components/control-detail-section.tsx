@@ -6,6 +6,7 @@ import { ChecklistResultEditor } from "@/features/controls/components/checklist-
 import { CompleteControlButton } from "@/features/controls/components/complete-control-button";
 import { ControlAreaResultsSection } from "@/features/controls/components/control-area-results-section";
 import { ControlCommentEditor } from "@/features/controls/components/control-comment-editor";
+import { ControlPdfExportButton } from "@/features/controls/components/control-pdf-export-button";
 import { ControlPhotosSection } from "@/features/controls/components/control-photos-section";
 import { ControlQualityRatingEditor } from "@/features/controls/components/control-quality-rating-editor";
 import { useLocalControlDetail } from "@/features/controls/hooks/use-local-control-detail";
@@ -69,6 +70,8 @@ export function ControlDetailSection({
           {detail.building?.address ?? "Adresse non renseignee"}
         </p>
       </div>
+
+      <ControlPdfExportButton detail={detail} />
 
       <ControlQualityRatingEditor control={detail.control} userId={userId} />
 
