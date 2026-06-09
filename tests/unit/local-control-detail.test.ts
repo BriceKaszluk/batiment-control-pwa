@@ -131,6 +131,7 @@ describe("local control detail", () => {
       getLocalControlDetail({ controlId, database, userId }),
     ).resolves.toEqual({
       agent: null,
+      agents: [],
       areaResults: [
         {
           area: "hall",

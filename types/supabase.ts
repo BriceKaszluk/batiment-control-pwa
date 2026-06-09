@@ -93,6 +93,7 @@ export type Database = {
           agent_status?: Database["public"]["Enums"]["agent_status"];
           areas_to_check?: Json;
           assigned_agent_id?: string | null;
+          assigned_agent_ids?: string[];
           assigned_agent_name?: string | null;
           access_notes?: string | null;
           address?: string | null;
@@ -115,6 +116,7 @@ export type Database = {
           agent_status: Database["public"]["Enums"]["agent_status"];
           areas_to_check: Json;
           assigned_agent_id: string | null;
+          assigned_agent_ids: string[];
           assigned_agent_name: string | null;
           access_notes: string | null;
           address: string | null;
@@ -136,6 +138,7 @@ export type Database = {
           agent_status?: Database["public"]["Enums"]["agent_status"];
           areas_to_check?: Json;
           assigned_agent_id?: string | null;
+          assigned_agent_ids?: string[];
           assigned_agent_name?: string | null;
           access_notes?: string | null;
           address?: string | null;

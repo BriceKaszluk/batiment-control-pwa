@@ -58,6 +58,12 @@ const agent: Agent = {
   status: "replacement",
   updatedAt: now,
 };
+const secondAgent: Agent = {
+  ...agent,
+  id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  name: "Agent B",
+  status: "present",
+};
 
 describe("local building editor", () => {
   let database: BatimentControlDatabase;
@@ -147,7 +153,40 @@ describe("local building editor", () => {
     expect(result.record).toMatchObject({
       agentStatus: "replacement",
       assignedAgentId: agent.id,
+      assignedAgentIds: [agent.id],
       assignedAgentName: "Agent A",
+    });
+  });
+
+  it("uses multiple selected local agents when creating a building", async () => {
+    await database.agents.bulkPut([agent, secondAgent]);
+
+    const result = await createBuilding({
+      createId: createIdFactory([buildingId, mutationId, operationId]),
+      database,
+      input: {
+        address: "12 rue du Controle",
+        agentStatus: "unknown",
+        areasToCheck: [],
+        assignedAgentId: null,
+        assignedAgentIds: [agent.id, secondAgent.id],
+        assignedAgentName: null,
+        internalNotes: null,
+        name: "batiment a",
+        priorityLevel: "normal",
+        sector: "secteur nord",
+        serviceDays: [],
+      },
+      now: () => now,
+      organizationId,
+      userId,
+    });
+
+    expect(result.record).toMatchObject({
+      agentStatus: "unknown",
+      assignedAgentId: agent.id,
+      assignedAgentIds: [agent.id, secondAgent.id],
+      assignedAgentName: "Agent A, Agent B",
     });
   });
 
@@ -193,9 +232,10 @@ describe("local building editor", () => {
     });
 
     expect(result.record).toMatchObject({
-      agentStatus: "present",
+      agentStatus: "unknown",
       assignedAgentId: null,
-      assignedAgentName: "Agent B",
+      assignedAgentIds: [],
+      assignedAgentName: null,
       name: "Batiment A (Modifie)",
       priorityLevel: "high",
       sector: "Secteur Nord",

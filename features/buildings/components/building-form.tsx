@@ -24,7 +24,7 @@ import {
   capitalizeWords,
   capitalizeWordStarts,
 } from "@/lib/text/capitalize-words";
-import type { Building, BuildingCreateInput } from "@/types/domain";
+import type { Agent, Building, BuildingCreateInput } from "@/types/domain";
 
 type BuildingFormMode = "create" | "edit";
 
@@ -97,7 +97,7 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [sector, setSector] = useState("");
-  const [assignedAgentId, setAssignedAgentId] = useState("");
+  const [assignedAgentIds, setAssignedAgentIds] = useState<string[]>([]);
   const [priorityLevel, setPriorityLevel] = useState<
     (typeof buildingPriorityLevels)[number]
   >("normal");
@@ -129,7 +129,12 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
       setName(building.name);
       setAddress(building.address);
       setSector(building.sector);
-      setAssignedAgentId(building.assignedAgentId ?? "");
+      setAssignedAgentIds(
+        getInitialAssignedAgentIds({
+          assignedAgentId: building.assignedAgentId,
+          assignedAgentIds: building.assignedAgentIds,
+        }),
+      );
       setPriorityLevel(building.priorityLevel);
       setInternalNotes(building.internalNotes ?? "");
       setServiceDays(building.serviceDays);
@@ -142,10 +147,17 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
     }
   }, [building, isEdit, organizationsState.organizations]);
 
-  const selectedAgent = useMemo(
-    () =>
-      agentsState.agents.find((agent) => agent.id === assignedAgentId) ?? null,
-    [agentsState.agents, assignedAgentId],
+  const selectedAgents = useMemo(
+    () => {
+      const agentsById = new Map(
+        agentsState.agents.map((agent) => [agent.id, agent]),
+      );
+
+      return assignedAgentIds
+        .map((agentId) => agentsById.get(agentId))
+        .filter((agent): agent is Agent => Boolean(agent));
+    },
+    [agentsState.agents, assignedAgentIds],
   );
 
   const canSave = useMemo(() => {
@@ -163,6 +175,21 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
   function normalizeOptionalText(value: string) {
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
+  }
+
+  function getInitialAssignedAgentIds({
+    assignedAgentId,
+    assignedAgentIds,
+  }: {
+    assignedAgentId: string | null;
+    assignedAgentIds: string[] | undefined;
+  }) {
+    return [
+      ...new Set([
+        ...(assignedAgentIds ?? []),
+        ...(assignedAgentId ? [assignedAgentId] : []),
+      ]),
+    ];
   }
 
   function handleDeleteSector(sectorId: string, sectorName: string) {
@@ -385,28 +412,49 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
       <section className="surface-panel space-y-4 p-4">
         <h2 className="text-base font-semibold">Agent</h2>
 
-        <label className="block space-y-2 text-sm font-medium">
-          <span>Agent affecte</span>
-          <select
-            className="h-12 w-full rounded-md border bg-background px-3 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring"
-            onChange={(event) => {
-              setAssignedAgentId(event.target.value);
-            }}
-            value={assignedAgentId}
-          >
-            <option value="">Aucun agent</option>
-            {agentsState.agents.map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name}
-              </option>
-            ))}
-          </select>
-          {fieldErrors.assignedAgentId ? (
-            <p className="text-sm font-medium text-red-700">
-              {fieldErrors.assignedAgentId}
-            </p>
-          ) : null}
-        </label>
+        {agentsState.agents.length > 0 ? (
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Agents affectes</legend>
+            <div className="grid grid-cols-1 gap-2">
+              {agentsState.agents.map((agent) => {
+                const checked = assignedAgentIds.includes(agent.id);
+
+                return (
+                  <label
+                    className="flex items-center gap-3 rounded-md border bg-background px-3 py-2 text-sm font-medium transition-[background-color,border-color,transform] duration-200 ease-out active:scale-[0.99]"
+                    key={agent.id}
+                  >
+                    <input
+                      checked={checked}
+                      className="size-5"
+                      onChange={(event) => {
+                        const isChecked = event.target.checked;
+
+                        setAssignedAgentIds((current) =>
+                          isChecked
+                            ? [...current, agent.id]
+                            : current.filter((agentId) => agentId !== agent.id),
+                        );
+                      }}
+                      type="checkbox"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate">{agent.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {getAgentStatusLabel(agent.status)}
+                      </span>
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {fieldErrors.assignedAgentIds ? (
+              <p className="text-sm font-medium text-red-700">
+                {fieldErrors.assignedAgentIds}
+              </p>
+            ) : null}
+          </fieldset>
+        ) : null}
 
         {agentsState.isLoading ? (
           <div className="flex items-center gap-2 rounded-md border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">
@@ -433,9 +481,11 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
           </Button>
         ) : null}
 
-        {selectedAgent ? (
+        {selectedAgents.length > 0 ? (
           <p className="rounded-md border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground">
-            Statut: {getAgentStatusLabel(selectedAgent.status)}
+            {selectedAgents.length === 1
+              ? `Agent selectionne: ${selectedAgents[0].name}`
+              : `${selectedAgents.length} agents selectionnes`}
           </p>
         ) : null}
       </section>
@@ -667,9 +717,16 @@ export function BuildingForm({ building, mode, userId }: Readonly<BuildingFormPr
             const input: BuildingCreateInput = {
               address,
               areasToCheck,
-              assignedAgentId: normalizeOptionalText(assignedAgentId),
-              agentStatus: selectedAgent?.status ?? "unknown",
-              assignedAgentName: selectedAgent?.name ?? null,
+              assignedAgentId: assignedAgentIds[0] ?? null,
+              assignedAgentIds,
+              agentStatus:
+                selectedAgents.length === 1
+                  ? selectedAgents[0].status
+                  : "unknown",
+              assignedAgentName:
+                selectedAgents.length > 0
+                  ? selectedAgents.map((agent) => agent.name).join(", ")
+                  : null,
               internalNotes: normalizeOptionalText(internalNotes),
               name,
               priorityLevel,

@@ -67,6 +67,12 @@ const agent: Agent = {
   status: "present",
   updatedAt: now,
 };
+const secondAgent: Agent = {
+  ...agent,
+  id: "77777777-7777-4777-8777-777777777777",
+  name: "Agent B",
+  status: "replacement",
+};
 
 function createControl(overrides: Partial<Control> & Pick<Control, "id">): Control {
   const { id, ...optionalOverrides } = overrides;
@@ -243,23 +249,24 @@ describe("local buildings", () => {
     ).resolves.toEqual([assignedBuilding]);
   });
 
-  it("returns the latest assigned agent for building list entries", async () => {
+  it("returns the latest assigned agents for building list entries", async () => {
     const assignedBuilding = createBuilding({
       assignedAgentId: agent.id,
+      assignedAgentIds: [agent.id, secondAgent.id],
       id: "33333333-3333-4333-8333-333333333333",
       name: "Batiment assigne",
       priorityLevel: "normal",
     });
 
     await database.organizationMembers.put(organizationMember);
-    await database.agents.put(agent);
+    await database.agents.bulkPut([agent, secondAgent]);
     await database.buildings.put(assignedBuilding);
 
     await expect(
       listBuildingEntriesForUser({ database, userId }),
     ).resolves.toEqual([
       {
-        agent,
+        agents: [agent, secondAgent],
         building: assignedBuilding,
         priorityScore: expect.objectContaining({
           score: 59,
@@ -278,10 +285,13 @@ describe("local buildings", () => {
       listBuildingEntriesForUser({ database, userId }),
     ).resolves.toEqual([
       {
-        agent: expect.objectContaining({
-          id: agent.id,
-          status: "sick_leave",
-        }),
+        agents: [
+          expect.objectContaining({
+            id: agent.id,
+            status: "sick_leave",
+          }),
+          secondAgent,
+        ],
         building: assignedBuilding,
         priorityScore: expect.objectContaining({
           score: 59,

@@ -38,6 +38,10 @@ const controlAreaResultsMigration = readFileSync(
   "supabase/migrations/20260608190000_add_control_area_results.sql",
   "utf8",
 );
+const buildingAgentIdsMigration = readFileSync(
+  "supabase/migrations/20260609090000_add_building_agent_ids.sql",
+  "utf8",
+);
 
 const publicTables = [
   "organizations",
@@ -265,5 +269,20 @@ describe("control area results Supabase migration", () => {
     expect(controlAreaResultsMigration).toContain(
       "public.is_org_member(organization_id)",
     );
+  });
+});
+
+describe("building agent ids Supabase migration", () => {
+  it("adds a non-destructive multi-agent column to buildings", () => {
+    expect(buildingAgentIdsMigration).toContain(
+      "add column if not exists assigned_agent_ids uuid[]",
+    );
+    expect(buildingAgentIdsMigration).toContain(
+      "set assigned_agent_ids = array[assigned_agent_id]",
+    );
+    expect(buildingAgentIdsMigration).toContain(
+      "buildings_assigned_agent_ids_gin_idx",
+    );
+    expect(buildingAgentIdsMigration).not.toContain("service_role");
   });
 });

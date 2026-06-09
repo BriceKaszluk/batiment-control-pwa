@@ -30,7 +30,7 @@ export type ListBuildingsForUserOptions = {
 };
 
 export type BuildingListEntry = {
-  agent: Agent | null;
+  agents: Agent[];
   building: Building;
   priorityScore: BuildingPriorityScore;
   recentCompletedControls: Control[];
@@ -78,9 +78,9 @@ export async function listBuildingEntriesForUser({
     getScoreContextsByBuildingId({ buildings, database }),
   ]);
   const scoredEntries = buildings.map((building) => ({
-    agent: building.assignedAgentId
-      ? agentsById.get(building.assignedAgentId) ?? null
-      : null,
+    agents: getAssignedAgentIds(building)
+      .map((agentId) => agentsById.get(agentId))
+      .filter((agent): agent is Agent => Boolean(agent)),
     building,
     priorityScore: calculateBuildingPriorityScore({
       building,
@@ -154,9 +154,7 @@ async function getAgentsById({
 }) {
   const agentIds = [
     ...new Set(
-      buildings
-        .map((building) => building.assignedAgentId)
-        .filter((agentId): agentId is string => Boolean(agentId)),
+      buildings.flatMap((building) => getAssignedAgentIds(building)),
     ),
   ];
 
@@ -303,19 +301,28 @@ export function filterBuildingEntriesBySearchQuery({
   );
 }
 
-function getBuildingSearchContent({ agent, building }: BuildingListEntry) {
+function getBuildingSearchContent({ agents, building }: BuildingListEntry) {
   return normalizeSearchText(
     [
       building.name,
       building.address,
       building.sector,
       building.internalNotes,
-      agent?.name,
+      ...agents.map((agent) => agent.name),
       building.assignedAgentName,
     ]
       .filter((value): value is string => Boolean(value))
       .join(" "),
   );
+}
+
+function getAssignedAgentIds(building: Building) {
+  return [
+    ...new Set([
+      ...(building.assignedAgentIds ?? []),
+      ...(building.assignedAgentId ? [building.assignedAgentId] : []),
+    ]),
+  ];
 }
 
 function normalizeSearchText(value: string) {

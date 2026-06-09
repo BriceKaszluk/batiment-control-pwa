@@ -146,6 +146,10 @@ export function toBuilding(row: PublicTables["buildings"]["Row"]): Building {
       .array(buildingAreaSchema)
       .parse(normalizeBuildingAreaList(row.areas_to_check)),
     assignedAgentId: row.assigned_agent_id,
+    assignedAgentIds: normalizeAssignedAgentIds(
+      row.assigned_agent_ids,
+      row.assigned_agent_id,
+    ),
     assignedAgentName: row.assigned_agent_name,
     createdAt: row.created_at,
     createdBy: row.created_by,
@@ -160,6 +164,18 @@ export function toBuilding(row: PublicTables["buildings"]["Row"]): Building {
     serviceDays: z.array(buildingServiceDaySchema).parse(row.service_days),
     updatedAt: row.updated_at,
   };
+}
+
+function normalizeAssignedAgentIds(
+  assignedAgentIds: string[] | null | undefined,
+  legacyAssignedAgentId: string | null,
+) {
+  return [
+    ...new Set([
+      ...(Array.isArray(assignedAgentIds) ? assignedAgentIds : []),
+      ...(legacyAssignedAgentId ? [legacyAssignedAgentId] : []),
+    ]),
+  ];
 }
 
 export function toBuildingSector(

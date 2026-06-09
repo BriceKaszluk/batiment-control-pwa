@@ -237,6 +237,7 @@ function toBuildingInsert(building: Building): PublicTables["buildings"]["Insert
     agent_status: building.agentStatus,
     areas_to_check: building.areasToCheck,
     assigned_agent_id: building.assignedAgentId,
+    assigned_agent_ids: getAssignedAgentIds(building),
     assigned_agent_name: building.assignedAgentName,
     address: building.address,
     created_at: building.createdAt,
@@ -253,6 +254,17 @@ function toBuildingInsert(building: Building): PublicTables["buildings"]["Insert
     service_days: building.serviceDays,
     updated_at: building.updatedAt,
   };
+}
+
+function getAssignedAgentIds(building: Building) {
+  return [
+    ...new Set(
+      [
+        ...(building.assignedAgentIds ?? []),
+        ...(building.assignedAgentId ? [building.assignedAgentId] : []),
+      ].filter((agentId) => agentId.length > 0),
+    ),
+  ];
 }
 
 function toBuildingSectorInsert(

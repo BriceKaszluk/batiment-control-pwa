@@ -28,6 +28,7 @@ export type LocalControlAreaEntry = {
 
 export type LocalControlDetail = {
   agent: Agent | null;
+  agents: Agent[];
   areaResults: LocalControlAreaEntry[];
   building: Building | undefined;
   control: Control;
@@ -107,12 +108,13 @@ export async function getLocalControlDetail({
   const resultsByArea = new Map(
     areaResults.map((result) => [result.area, result]),
   );
-  const agent = building?.assignedAgentId
-    ? await database.agents.get(building.assignedAgentId)
-    : undefined;
+  const agents = building
+    ? await getAssignedAgents(database, building)
+    : [];
 
   return {
-    agent: agent && agent.deletedAt === null ? agent : null,
+    agent: agents[0] ?? null,
+    agents,
     areaResults: (building?.areasToCheck ?? []).map((area) => ({
       area,
       result: resultsByArea.get(area),
@@ -121,6 +123,29 @@ export async function getLocalControlDetail({
     control,
     photos: photos.sort(comparePhotos),
   };
+}
+
+async function getAssignedAgents(
+  database: BatimentControlDatabase,
+  building: Building,
+) {
+  const agentIds = [
+    ...new Set([
+      ...(building.assignedAgentIds ?? []),
+      ...(building.assignedAgentId ? [building.assignedAgentId] : []),
+    ]),
+  ];
+
+  if (agentIds.length === 0) {
+    return [];
+  }
+
+  const agents = await database.agents.bulkGet(agentIds);
+
+  return agents.filter(
+    (agent): agent is Agent =>
+      agent !== undefined && agent.deletedAt === null,
+  );
 }
 
 export async function saveControlAreaResult({

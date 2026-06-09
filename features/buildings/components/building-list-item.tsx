@@ -54,7 +54,7 @@ const scoreToneClasses: Record<BuildingPriorityScoreLevel, string> = {
 };
 
 type BuildingListItemProps = {
-  agent: Agent | null;
+  agents: Agent[];
   building: Building;
   priorityScore: BuildingPriorityScore;
   recentCompletedControls: Control[];
@@ -62,7 +62,7 @@ type BuildingListItemProps = {
 };
 
 export function BuildingListItem({
-  agent,
+  agents,
   building,
   priorityScore,
   recentCompletedControls,
@@ -71,9 +71,8 @@ export function BuildingListItem({
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isScoreOpen, setIsScoreOpen] = useState(false);
   const priorityTone = getBuildingPriorityTone(building.priorityLevel);
-  const agentStatus = agent?.status ?? building.agentStatus;
-  const agentName = agent?.name ?? building.assignedAgentName;
-  const agentTone = getAgentStatusTone(agentStatus);
+  const legacyAgentName = agents.length === 0 ? building.assignedAgentName : null;
+  const legacyAgentTone = getAgentStatusTone(building.agentStatus);
 
   return (
     <article className="surface-card p-4">
@@ -132,15 +131,27 @@ export function BuildingListItem({
           <Clock3 aria-hidden="true" className="size-3.5" />
           {building.lastControlAt ? "Controle deja realise" : "Jamais controle"}
         </span>
-        {agentName ? (
+        {agents.map((agent) => (
           <span
             className={cn(
               "status-pill gap-1 px-2 py-1",
-              agentToneClasses[agentTone],
+              agentToneClasses[getAgentStatusTone(agent.status)],
+            )}
+            key={agent.id}
+          >
+            <UserRound aria-hidden="true" className="size-3.5" />
+            {agent.name} - {getAgentStatusLabel(agent.status)}
+          </span>
+        ))}
+        {legacyAgentName ? (
+          <span
+            className={cn(
+              "status-pill gap-1 px-2 py-1",
+              agentToneClasses[legacyAgentTone],
             )}
           >
             <UserRound aria-hidden="true" className="size-3.5" />
-            {agentName} - {getAgentStatusLabel(agentStatus)}
+            {legacyAgentName} - {getAgentStatusLabel(building.agentStatus)}
           </span>
         ) : null}
       </div>

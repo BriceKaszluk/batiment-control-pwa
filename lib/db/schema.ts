@@ -94,6 +94,10 @@ const versionTenStores = {
     "&id, organizationId, controlId, area, status, updatedAt, [organizationId+controlId], [controlId+area]",
 };
 
+const versionElevenStores = {
+  ...versionTenStores,
+};
+
 export class BatimentControlDatabase extends Dexie {
   agents!: Table<Agent, string>;
   buildings!: Table<Building, string>;
@@ -233,5 +237,33 @@ export class BatimentControlDatabase extends Dexie {
           }),
       );
     this.version(10).stores(versionTenStores);
+    this.version(11)
+      .stores(versionElevenStores)
+      .upgrade((tx) =>
+        tx
+          .table("buildings")
+          .toCollection()
+          .modify((building) => {
+            const record = building as Record<string, unknown>;
+
+            if (Array.isArray(record.assignedAgentIds)) {
+              record.assignedAgentIds = [
+                ...new Set(
+                  record.assignedAgentIds.filter(
+                    (agentId): agentId is string =>
+                      typeof agentId === "string" && agentId.length > 0,
+                  ),
+                ),
+              ];
+              return;
+            }
+
+            record.assignedAgentIds =
+              typeof record.assignedAgentId === "string" &&
+              record.assignedAgentId.length > 0
+                ? [record.assignedAgentId]
+                : [];
+          }),
+      );
   }
 }

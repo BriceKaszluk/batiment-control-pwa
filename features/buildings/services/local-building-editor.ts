@@ -186,6 +186,7 @@ export async function updateBuilding({
 function normalizeBuildingInput(input: BuildingCreateInput): BuildingCreateInput {
   return {
     ...input,
+    assignedAgentIds: normalizeAssignedAgentIds(input),
     assignedAgentName: input.assignedAgentName
       ? capitalizeWords(input.assignedAgentName)
       : input.assignedAgentName,
@@ -203,21 +204,48 @@ async function enrichBuildingInputWithAgent({
   input: BuildingCreateInput;
   organizationId: string;
 }): Promise<BuildingCreateInput> {
-  if (!input.assignedAgentId) {
-    return input;
+  const assignedAgentIds = normalizeAssignedAgentIds(input);
+
+  if (assignedAgentIds.length === 0) {
+    return {
+      ...input,
+      agentStatus: "unknown",
+      assignedAgentId: null,
+      assignedAgentIds: [],
+      assignedAgentName: null,
+    };
   }
 
-  const agent = await database.agents.get(input.assignedAgentId);
+  const agents = await database.agents.bulkGet(assignedAgentIds);
+  const assignableAgents = agents.filter((agent): agent is Agent =>
+    isAssignableAgent(agent, organizationId),
+  );
 
-  if (!isAssignableAgent(agent, organizationId)) {
+  if (assignableAgents.length !== assignedAgentIds.length) {
     throw new Error("Agent local introuvable pour ce batiment.");
   }
+  const [primaryAgent] = assignableAgents;
 
   return {
     ...input,
-    agentStatus: agent.status,
-    assignedAgentName: agent.name,
+    agentStatus:
+      assignableAgents.length === 1 && primaryAgent
+        ? primaryAgent.status
+        : "unknown",
+    assignedAgentId: primaryAgent?.id ?? null,
+    assignedAgentIds,
+    assignedAgentName:
+      assignableAgents.length > 0
+        ? assignableAgents.map((agent) => agent.name).join(", ")
+        : null,
   };
+}
+
+function normalizeAssignedAgentIds(input: BuildingCreateInput) {
+  const agentIds = input.assignedAgentIds ?? [];
+  const legacyAgentId = input.assignedAgentId ? [input.assignedAgentId] : [];
+
+  return [...new Set([...agentIds, ...legacyAgentId])];
 }
 
 function isAssignableAgent(

@@ -78,6 +78,12 @@ const buildingAreasToCheckSchema = z
 const uuidSchema = z.string().uuid();
 const isoDateTimeSchema = z.string().datetime({ offset: true });
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const assignedAgentIdsSchema = z
+  .array(uuidSchema)
+  .refine((agentIds) => new Set(agentIds).size === agentIds.length, {
+    message: "Un agent ne peut etre affecte qu'une seule fois.",
+  })
+  .optional();
 const blobSchema = z.custom<Blob>(
   (value) => typeof Blob !== "undefined" && value instanceof Blob,
   "A local photo blob is required",
@@ -147,6 +153,7 @@ export const buildingSchema = z
     agentStatus: agentStatusSchema.default("unknown"),
     areasToCheck: buildingAreasToCheckSchema,
     assignedAgentId: uuidSchema.nullable().default(null),
+    assignedAgentIds: assignedAgentIdsSchema,
     assignedAgentName: nullableText(160).default(null),
     createdAt: isoDateTimeSchema,
     createdBy: uuidSchema,
@@ -336,6 +343,7 @@ export const buildingCreateSchema = z
     agentStatus: agentStatusSchema.default("unknown"),
     areasToCheck: buildingAreasToCheckSchema,
     assignedAgentId: buildingSchema.shape.assignedAgentId,
+    assignedAgentIds: assignedAgentIdsSchema,
     assignedAgentName: nullableText(160).optional().default(null),
     internalNotes: nullableText(3000).optional().default(null),
     name: buildingSchema.shape.name,

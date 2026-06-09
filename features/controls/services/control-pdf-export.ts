@@ -173,7 +173,12 @@ function drawSummary(layout: PdfLayout, detail: LocalControlDetail) {
     ["Batiment", building?.name ?? "Non renseigne"],
     ["Adresse", building?.address ?? "Non renseignee"],
     ["Secteur", building?.sector ?? "Non renseigne"],
-    ["Agent", detail.agent?.name ?? building?.assignedAgentName ?? "Non affecte"],
+    [
+      "Agent(s)",
+      detail.agents.length > 0
+        ? detail.agents.map((agent) => agent.name).join(", ")
+        : building?.assignedAgentName ?? "Non affecte",
+    ],
     ["Statut", getControlStatusLabel(detail.control.status)],
     [
       "Etat global",
