@@ -1,7 +1,7 @@
 "use client";
 
 import { Download, Loader2, Share2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import type { LocalControlDetail } from "@/features/controls/services/local-control-detail";
@@ -15,17 +15,77 @@ type ShareNavigator = Navigator & {
   share?: (data: ShareData) => Promise<void>;
 };
 
+type PreparedPdf = {
+  blob: Blob;
+  file: File | null;
+  fileName: string;
+};
+
+type PdfPreparationStatus = "error" | "preparing" | "ready";
+
 const pdfObjectUrlLifetimeMs = 60_000;
 
 export function ControlPdfExportButton({
   detail,
 }: Readonly<ControlPdfExportButtonProps>) {
+  const [preparedPdf, setPreparedPdf] = useState<PreparedPdf | null>(null);
+  const [preparationStatus, setPreparationStatus] =
+    useState<PdfPreparationStatus>("preparing");
   const [message, setMessage] = useState<string | null>(null);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
+  useEffect(() => {
+    if (detail.control.status !== "completed") {
+      return;
+    }
+
+    let isCanceled = false;
+
+    setPreparedPdf(null);
+    setPreparationStatus("preparing");
+    setMessage(null);
+
+    void preparePdf(detail)
+      .then((prepared) => {
+        if (isCanceled) {
+          return;
+        }
+
+        setPreparedPdf(prepared);
+        setPreparationStatus("ready");
+      })
+      .catch((error: unknown) => {
+        if (isCanceled) {
+          return;
+        }
+
+        setPreparationStatus("error");
+        setMessage(
+          error instanceof Error ? error.message : "Preparation PDF impossible.",
+        );
+      });
+
+    return () => {
+      isCanceled = true;
+    };
+  }, [detail, retryCount]);
 
   if (detail.control.status !== "completed") {
     return null;
   }
+
+  const canSharePreparedPdf = preparedPdf
+    ? canSharePdfFileWithCurrentNavigator(preparedPdf.file)
+    : false;
+  const isPreparing = preparationStatus === "preparing";
+  const isDisabled = isPreparing || isSharing;
+  const buttonLabel = getPdfButtonLabel({
+    canSharePreparedPdf,
+    isPreparing,
+    isSharing,
+    preparationStatus,
+  });
 
   return (
     <section className="surface-panel space-y-3 p-4">
@@ -43,12 +103,22 @@ export function ControlPdfExportButton({
 
       <Button
         className="h-12 w-full"
-        disabled={isExporting}
+        disabled={isDisabled}
         onClick={() => {
-          setMessage(null);
-          setIsExporting(true);
+          if (preparationStatus === "error") {
+            setRetryCount((current) => current + 1);
+            return;
+          }
 
-          void exportPdf(detail)
+          if (!preparedPdf) {
+            setMessage("PDF en preparation.");
+            return;
+          }
+
+          setMessage(null);
+          setIsSharing(true);
+
+          void exportPreparedPdf(preparedPdf)
             .then((result) => {
               setMessage(result);
             })
@@ -60,17 +130,19 @@ export function ControlPdfExportButton({
               );
             })
             .finally(() => {
-              setIsExporting(false);
+              setIsSharing(false);
             });
         }}
         type="button"
       >
-        {isExporting ? (
+        {isPreparing || isSharing ? (
           <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+        ) : canSharePreparedPdf ? (
+          <Share2 aria-hidden="true" className="size-4" />
         ) : (
           <Download aria-hidden="true" className="size-4" />
         )}
-        {isExporting ? "Preparation du PDF..." : "Exporter PDF"}
+        {buttonLabel}
       </Button>
 
       {message ? (
@@ -80,33 +152,39 @@ export function ControlPdfExportButton({
   );
 }
 
-async function exportPdf(detail: LocalControlDetail) {
+async function preparePdf(detail: LocalControlDetail): Promise<PreparedPdf> {
   const { createControlPdfBlob, getControlPdfFileName } = await import(
     "@/features/controls/services/control-pdf-export"
   );
   const blob = await createControlPdfBlob(detail);
   const fileName = getControlPdfFileName(detail);
-  const shareNavigator = navigator as ShareNavigator;
   const file = createPdfFile(blob, fileName);
 
-  if (file && canSharePdfFile(shareNavigator, file)) {
-    try {
-      await shareNavigator.share({
-        files: [file],
-        text: "Synthese du controle batiment.",
-        title: fileName,
-      });
+  return { blob, file, fileName };
+}
 
-      return "PDF pret a partager ou enregistrer.";
-    } catch (error: unknown) {
-      if (isShareCanceled(error)) {
-        return "Partage annule.";
-      }
-    }
+function exportPreparedPdf(preparedPdf: PreparedPdf): Promise<string> {
+  const shareNavigator = navigator as ShareNavigator;
+
+  if (preparedPdf.file && canSharePdfFile(shareNavigator, preparedPdf.file)) {
+    return shareNavigator
+      .share?.({
+        files: [preparedPdf.file],
+        text: "Synthese du controle batiment.",
+        title: preparedPdf.fileName,
+      })
+      .then(() => "PDF pret a partager ou enregistrer.")
+      .catch((error: unknown) => {
+        if (isShareCanceled(error)) {
+          return "Partage annule.";
+        }
+
+        throw error;
+      });
   }
 
-  downloadBlob(blob, fileName);
-  return "PDF ouvert ou telecharge. Sur mobile, regarde aussi les telechargements.";
+  downloadBlob(preparedPdf.blob, preparedPdf.fileName);
+  return Promise.resolve("PDF telecharge. Regarde les telechargements du telephone.");
 }
 
 function createPdfFile(blob: Blob, fileName: string) {
@@ -132,6 +210,14 @@ function canSharePdfFile(shareNavigator: ShareNavigator, file: File) {
   }
 }
 
+function canSharePdfFileWithCurrentNavigator(file: File | null) {
+  if (!file || typeof navigator === "undefined") {
+    return false;
+  }
+
+  return canSharePdfFile(navigator as ShareNavigator, file);
+}
+
 function isShareCanceled(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
 }
@@ -142,12 +228,36 @@ function downloadBlob(blob: Blob, fileName: string) {
 
   link.href = url;
   link.download = fileName;
-  link.rel = "noopener";
-  link.target = "_blank";
   document.body.append(link);
   link.click();
   link.remove();
   window.setTimeout(() => {
     URL.revokeObjectURL(url);
   }, pdfObjectUrlLifetimeMs);
+}
+
+function getPdfButtonLabel({
+  canSharePreparedPdf,
+  isPreparing,
+  isSharing,
+  preparationStatus,
+}: {
+  canSharePreparedPdf: boolean;
+  isPreparing: boolean;
+  isSharing: boolean;
+  preparationStatus: PdfPreparationStatus;
+}) {
+  if (isPreparing) {
+    return "Preparation du PDF...";
+  }
+
+  if (isSharing) {
+    return "Ouverture du PDF...";
+  }
+
+  if (preparationStatus === "error") {
+    return "Reessayer l'export PDF";
+  }
+
+  return canSharePreparedPdf ? "Partager / enregistrer le PDF" : "Telecharger le PDF";
 }
