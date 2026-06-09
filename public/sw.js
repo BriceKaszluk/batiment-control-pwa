@@ -1,8 +1,9 @@
 /* global self, caches, clients */
 
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const APP_SHELL_CACHE = `batiment-control-shell-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `batiment-control-runtime-${CACHE_VERSION}`;
+const PDF_EXPORT_CACHE = `batiment-control-pdf-exports-${CACHE_VERSION}`;
 const APP_SHELL_URLS = [
   "/",
   "/dashboard",
@@ -33,7 +34,8 @@ self.addEventListener("activate", (event) => {
               (cacheName) =>
                 cacheName.startsWith("batiment-control-") &&
                 cacheName !== APP_SHELL_CACHE &&
-                cacheName !== RUNTIME_CACHE,
+                cacheName !== RUNTIME_CACHE &&
+                cacheName !== PDF_EXPORT_CACHE,
             )
             .map((cacheName) => caches.delete(cacheName)),
         ),
@@ -45,6 +47,14 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
+    return;
+  }
+
+  if (event.data?.type === "PDF_EXPORT_SUPPORT") {
+    event.ports[0]?.postMessage({
+      supported: true,
+      type: "PDF_EXPORT_SUPPORT_RESULT",
+    });
   }
 });
 
@@ -53,6 +63,11 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
 
   if (request.method !== "GET" || url.origin !== self.location.origin) {
+    return;
+  }
+
+  if (url.pathname.startsWith("/pdf-exports/")) {
+    event.respondWith(pdfExportFromCache(request));
     return;
   }
 
@@ -68,6 +83,19 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(networkFirst(request));
 });
+
+async function pdfExportFromCache(request) {
+  const cachedResponse = await caches.match(request);
+
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  return new Response("PDF temporaire indisponible. Relance l'export depuis l'app.", {
+    headers: { "content-type": "text/plain; charset=utf-8" },
+    status: 404,
+  });
+}
 
 async function networkFirst(request, fallbackUrl) {
   const cache = await caches.open(RUNTIME_CACHE);

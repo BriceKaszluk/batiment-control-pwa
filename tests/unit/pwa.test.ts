@@ -55,6 +55,9 @@ describe("PWA foundation", () => {
     expect(serviceWorker).toContain("url.origin !== self.location.origin");
     expect(serviceWorker).toContain("networkFirst(request, \"/dashboard\")");
     expect(serviceWorker).toContain("staleWhileRevalidate(request)");
+    expect(serviceWorker).toContain("PDF_EXPORT_CACHE");
+    expect(serviceWorker).toContain("/pdf-exports/");
+    expect(serviceWorker).toContain("pdfExportFromCache(request)");
     expect(serviceWorker).toContain("/apple-touch-icon.png");
     expect(serviceWorker).toContain("/icons/icon-192.png");
     expect(serviceWorker).toContain("/icons/icon-512.png");
@@ -83,6 +86,8 @@ describe("PWA foundation", () => {
     expect(serviceWorkerRegister).toContain(
       "navigator.serviceWorker.getRegistrations()",
     );
+    expect(serviceWorkerRegister).toContain("updatefound");
+    expect(serviceWorkerRegister).toContain("controllerchange");
     expect(serviceWorkerRegister).toContain(
       'cacheName.startsWith("batiment-control-")',
     );

@@ -14,13 +14,36 @@ export function ServiceWorkerRegister() {
     }
 
     let canceled = false;
+    let refreshed = false;
 
     void navigator.serviceWorker.register("/sw.js").then((registration) => {
-      if (canceled || !registration.waiting) {
+      if (canceled) {
         return;
       }
 
-      registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      activateWaitingServiceWorker(registration);
+      registration.addEventListener("updatefound", () => {
+        const worker = registration.installing;
+
+        if (!worker) {
+          return;
+        }
+
+        worker.addEventListener("statechange", () => {
+          if (worker.state === "installed" && navigator.serviceWorker.controller) {
+            worker.postMessage({ type: "SKIP_WAITING" });
+          }
+        });
+      });
+    });
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (canceled || refreshed) {
+        return;
+      }
+
+      refreshed = true;
+      window.location.reload();
     });
 
     return () => {
@@ -29,6 +52,14 @@ export function ServiceWorkerRegister() {
   }, []);
 
   return null;
+}
+
+function activateWaitingServiceWorker(registration: ServiceWorkerRegistration) {
+  if (!registration.waiting) {
+    return;
+  }
+
+  registration.waiting.postMessage({ type: "SKIP_WAITING" });
 }
 
 async function cleanupDevelopmentPwaState() {

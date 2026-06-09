@@ -23,7 +23,10 @@ type PreparedPdf = {
 
 type PdfPreparationStatus = "error" | "preparing" | "ready";
 
+const pdfExportCacheName = "batiment-control-pdf-exports-v3";
+const pdfExportPathPrefix = "/pdf-exports/";
 const pdfObjectUrlLifetimeMs = 60_000;
+const serviceWorkerResponseTimeoutMs = 700;
 
 export function ControlPdfExportButton({
   detail,
@@ -163,28 +166,46 @@ async function preparePdf(detail: LocalControlDetail): Promise<PreparedPdf> {
   return { blob, file, fileName };
 }
 
-function exportPreparedPdf(preparedPdf: PreparedPdf): Promise<string> {
-  const shareNavigator = navigator as ShareNavigator;
+async function exportPreparedPdf(preparedPdf: PreparedPdf): Promise<string> {
+  const shareResult = await sharePdfFile(preparedPdf);
 
-  if (preparedPdf.file && canSharePdfFile(shareNavigator, preparedPdf.file)) {
-    return shareNavigator
-      .share?.({
-        files: [preparedPdf.file],
-        text: "Synthese du controle batiment.",
-        title: preparedPdf.fileName,
-      })
-      .then(() => "PDF pret a partager ou enregistrer.")
-      .catch((error: unknown) => {
-        if (isShareCanceled(error)) {
-          return "Partage annule.";
-        }
+  if (shareResult) {
+    return shareResult;
+  }
 
-        throw error;
-      });
+  const cachedPdfUrl = await createCachedPdfUrl(preparedPdf);
+
+  if (cachedPdfUrl) {
+    window.location.assign(cachedPdfUrl);
+    return "PDF ouvert.";
   }
 
   downloadBlob(preparedPdf.blob, preparedPdf.fileName);
-  return Promise.resolve("PDF telecharge. Regarde les telechargements du telephone.");
+  return "PDF telecharge. Regarde les telechargements du telephone.";
+}
+
+async function sharePdfFile(preparedPdf: PreparedPdf): Promise<string | null> {
+  const shareNavigator = navigator as ShareNavigator;
+
+  if (!preparedPdf.file || !canSharePdfFile(shareNavigator, preparedPdf.file)) {
+    return null;
+  }
+
+  try {
+    await shareNavigator.share?.({
+      files: [preparedPdf.file],
+      text: "Synthese du controle batiment.",
+      title: preparedPdf.fileName,
+    });
+
+    return "PDF pret a partager ou enregistrer.";
+  } catch (error: unknown) {
+    if (isShareCanceled(error)) {
+      return "Partage annule.";
+    }
+
+    return null;
+  }
 }
 
 function createPdfFile(blob: Blob, fileName: string) {
@@ -199,8 +220,12 @@ function createPdfFile(blob: Blob, fileName: string) {
 }
 
 function canSharePdfFile(shareNavigator: ShareNavigator, file: File) {
-  if (!shareNavigator.share || !shareNavigator.canShare) {
+  if (!shareNavigator.share) {
     return false;
+  }
+
+  if (!shareNavigator.canShare) {
+    return true;
   }
 
   try {
@@ -220,6 +245,73 @@ function canSharePdfFileWithCurrentNavigator(file: File | null) {
 
 function isShareCanceled(error: unknown) {
   return error instanceof DOMException && error.name === "AbortError";
+}
+
+async function createCachedPdfUrl(preparedPdf: PreparedPdf) {
+  if (!(await canServePdfFromCache())) {
+    return null;
+  }
+
+  const cache = await caches.open(pdfExportCacheName);
+  const previousExports = await cache.keys();
+  const pdfUrl = new URL(
+    `${pdfExportPathPrefix}${encodeURIComponent(preparedPdf.fileName)}`,
+    window.location.origin,
+  );
+
+  pdfUrl.searchParams.set("t", Date.now().toString(36));
+
+  await Promise.all(previousExports.map((request) => cache.delete(request)));
+  await cache.put(
+    pdfUrl.toString(),
+    new Response(preparedPdf.blob, {
+      headers: getPdfResponseHeaders(preparedPdf.fileName),
+    }),
+  );
+
+  return pdfUrl.toString();
+}
+
+async function canServePdfFromCache() {
+  if (
+    typeof window === "undefined" ||
+    !("caches" in window) ||
+    !("serviceWorker" in navigator) ||
+    !navigator.serviceWorker.controller
+  ) {
+    return false;
+  }
+
+  return await askServiceWorkerPdfSupport(navigator.serviceWorker.controller);
+}
+
+function askServiceWorkerPdfSupport(controller: ServiceWorker) {
+  return new Promise<boolean>((resolve) => {
+    const channel = new MessageChannel();
+    const timeoutId = window.setTimeout(() => {
+      resolve(false);
+    }, serviceWorkerResponseTimeoutMs);
+
+    channel.port1.onmessage = (event: MessageEvent) => {
+      window.clearTimeout(timeoutId);
+      resolve(
+        event.data?.type === "PDF_EXPORT_SUPPORT_RESULT" &&
+          event.data.supported === true,
+      );
+    };
+
+    controller.postMessage({ type: "PDF_EXPORT_SUPPORT" }, [channel.port2]);
+  });
+}
+
+function getPdfResponseHeaders(fileName: string) {
+  const safeFileName = fileName.replace(/["\\\r\n;]/g, "_");
+
+  return new Headers({
+    "cache-control": "no-store",
+    "content-disposition": `inline; filename="${safeFileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+    "content-type": "application/pdf",
+  });
 }
 
 function downloadBlob(blob: Blob, fileName: string) {
@@ -259,5 +351,5 @@ function getPdfButtonLabel({
     return "Reessayer l'export PDF";
   }
 
-  return canSharePreparedPdf ? "Partager / enregistrer le PDF" : "Telecharger le PDF";
+  return canSharePreparedPdf ? "Partager / enregistrer le PDF" : "Ouvrir le PDF";
 }
