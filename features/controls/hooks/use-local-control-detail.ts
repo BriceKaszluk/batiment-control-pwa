@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { MutableRefObject } from "react";
 
 import type {
   GetLocalControlDetailOptions,
@@ -26,6 +27,8 @@ export function useLocalControlDetail({
   controlId,
   userId,
 }: UseLocalControlDetailOptions): LocalControlDetailState {
+  const hydrationInFlightRef = useRef<string | null>(null);
+  const lastHydrationKeyRef = useRef<string | null>(null);
   const [state, setState] = useState<LocalControlDetailState>({
     detail: null,
     error: null,
@@ -72,6 +75,13 @@ export function useLocalControlDetail({
                 error: null,
                 isLoading: false,
               });
+              hydrateRemotePhotosOnce({
+                controlId,
+                detail,
+                hydrationInFlightRef,
+                lastHydrationKeyRef,
+                userId,
+              });
             },
           });
       })
@@ -94,4 +104,56 @@ export function useLocalControlDetail({
   }, [controlId, userId]);
 
   return state;
+}
+
+function hydrateRemotePhotosOnce({
+  controlId,
+  detail,
+  hydrationInFlightRef,
+  lastHydrationKeyRef,
+  userId,
+}: {
+  controlId: string;
+  detail: LocalControlDetail | null;
+  hydrationInFlightRef: MutableRefObject<string | null>;
+  lastHydrationKeyRef: MutableRefObject<string | null>;
+  userId: string | null;
+}) {
+  if (
+    !detail ||
+    !userId ||
+    detail.control.photosPurgedAt !== null ||
+    typeof navigator === "undefined" ||
+    !navigator.onLine
+  ) {
+    return;
+  }
+
+  const hydrationKey = `${userId}:${controlId}:${detail.control.updatedAt}`;
+
+  if (
+    lastHydrationKeyRef.current === hydrationKey ||
+    hydrationInFlightRef.current === hydrationKey
+  ) {
+    return;
+  }
+
+  hydrationInFlightRef.current = hydrationKey;
+
+  void import("@/features/controls/services/remote-control-photos")
+    .then((remoteControlPhotosModule) =>
+      remoteControlPhotosModule.hydrateRemoteControlPhotos({
+        controlId,
+        userId,
+      }),
+    )
+    .then(() => {
+      lastHydrationKeyRef.current = hydrationKey;
+    })
+    .catch(() => {
+      // The local control remains usable offline; remote photo hydration can retry later.
+    })
+    .finally(() => {
+      hydrationInFlightRef.current = null;
+    });
 }
